@@ -1,4 +1,4 @@
-#' PTA Price Prediction based on linear regression and ARIMA.
+#' PTA Price Prediction based on six different models.
 #' 
 #' More details please contact: Qiang Huang. 
 #' Copyright reserved by Qiang Huang.

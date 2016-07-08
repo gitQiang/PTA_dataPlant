@@ -25,6 +25,7 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
         
         # library and source files
         source("misc.R")
+        source("Models.R")
         jobid <- jobTrace(11,trace1);
         jobid <- jobTrace(12,trace1);
         library(lubridate) ## as.Date
@@ -44,8 +45,8 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
         if(!is.null(filenames)){dataM <- addNewIndex(filenames,useYears);}else{dataM <- c();}
         
         jobid <- jobTrace(1,trace1)
-        #data <- data_filling()
-        load("data_2002_2015")
+        data <- data_filling()
+        #load("data_2002_2015")
         data <- cbind(data,dataM)
         mode(data) <- "numeric"
 
@@ -76,32 +77,23 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
                 colnames(tmpdata1) <- colnames(tmpdata)
                 rownames(tmpdata1) <- rownames(tmpdata)
                 tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
-                
-                # target transform
-                if(trans==1){
-                        target0 <- tmpdata1[,1]
-                        tmpsub <- which(!is.na(tmpdata1[,1]))
-                        x1 <- Target_transform(tmpdata1[tmpsub,1])
-                        tmpdata1[tmpsub[-1],1] <- x1
-                        tmpdata1[tmpsub[1],1] <- NA
-                }
+
                 
                 for(j in 1:6){
                         results[[k]] <- oneDimPredict(tmpdata1,targetIndex=1,fre=fres[i],per=pers[i],sflag=i,model=j) 
                         
-                        if(trans==1){
-                                ind0 <- min(match(tmp[[1]]$labs,rownames(tmpdata1)))
-                                obs0 <- Target_transform(tmp[[1]]$obs, target0[ind0-1])
-                                pred0 <- Target_transform(tmp[[1]]$preds, target0[ind0-1])
-                                plot_testing(obs0,pred0,tmp[[1]]$labs)
-                        }
-                        
-                        precs[[k]] <- precision_pred(results[[i]][[1]],p=0.05)
-                        backprec[[k]] <- precision_pred(results[[i]][[2]],p=0.05)
+                        precs[[k]] <- precision_pred(results[[k]][[1]],p=0.05)
+                        backprec[[k]] <- precision_pred(results[[k]][[2]],p=0.05)
                         k <- k+1
+                        
+                        print(i)
+                        print(j)
                 }
         }
         
+        save(precs,file="precisions")
+        save(backprec,file="backgroundPrecision")
+        save(results,file="Allresults")
         
         ### error smaller than p
         ### trend correct
@@ -110,7 +102,7 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
         ### R2 summary
         
         jobid <- jobTrace(10,trace1)
-        
+  
 }
 
 ### 预留接口，用于获取实时数据

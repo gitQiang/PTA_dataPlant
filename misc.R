@@ -4,9 +4,9 @@ csv_clean <- function(filename,wfile=""){
         oneTable <- read.csv(filename,strip.white=TRUE)
         
         ### repalce special chars
-        oneTable[,1] <- gsub("??","-",oneTable[,1])
-        oneTable[,1] <- gsub("??","-",oneTable[,1])
-        oneTable[,1] <- gsub("??","",oneTable[,1])
+        oneTable[,1] <- gsub("年","-",oneTable[,1])
+        oneTable[,1] <- gsub("月","-",oneTable[,1])
+        oneTable[,1] <- gsub("日","",oneTable[,1])
         oneTable[,1] <- gsub("/","-",oneTable[,1])
         for(j in 2:ncol(oneTable)) oneTable[,j] <- gsub(",","",oneTable[,j])
         
@@ -47,7 +47,7 @@ fill_NA <- function(tmpTable,len=4){
 
 data_filling <- function(){
         
-        path <- "D:/data/????/???莨???/????????????/data_v1"
+        path <- "D:/data/恒逸/恒逸共享/调研数据整理/data_v1"
         filenames <- list.files(path,".csv",full.names=TRUE)
         useYears <- 2002:2016
         useDates <- seq.Date(as.Date("2002-1-1"),as.Date("2016-12-31"),by="day")
@@ -294,13 +294,13 @@ sarima_paraNew <- function(x,fre=10,nlag=0){
 
 arima_paraNew <- function(x,fre=10,nlag=0){
         
-        if(!is.ts(x)) x <- as.ts(x,frequency=fre)
+        #if(!is.ts(x)) x <- as.ts(x,frequency=fre)
         if(nlag==0) nlag <- min(length(x) - fre+1,200)
         
         d=1
-        fres <- (fre-2):(fre+2)
+        fres <- max((fre-2),1):(fre+2)
         minBIC <- 1e9
-        pdq <- c(p,d,q,fre)
+        pdq <- c(0,1,0,fre)
         for(f in fres){
                 tmp <- auto.arima(ts(x,frequency = f), d=d, max.p=4, max.q=4, max.d=d, start.p=0, start.q=0, seasonal=FALSE, ic="bic",stepwise = FALSE)
                 onebic <- BIC(tmp)
@@ -470,4 +470,49 @@ jobTrace <- function(job,trace1=0){
         
         job <- job+1
         job
+}
+
+toPPT <- function(){
+        
+        for(j in 1:4){
+                ###
+                resiM <- matrix(0,7,6)
+                for(i in 1:6){
+                        resiM[i, ] <- precs[[i+(j-1)*6]]$s4
+                }
+                resiM[i+1, ] <- backprec[[i+(j-1)*6]]$s4
+                write.csv(resiM,file=paste("DAYresi_",j,".csv",sep=""),quote=FALSE,row.names=FALSE)
+                
+                
+                ###
+                R2M <- matrix(0,7,6)
+                for(i in 1:6){
+                        R2M[i, ] <- precs[[i+(j-1)*6]]$s5
+                }
+                R2M[i+1, ] <- backprec[[i+(j-1)*6]]$s5
+                write.csv(R2M,file=paste("DAYR2_",j,".csv",sep=""),quote=FALSE,row.names=FALSE)
+                
+                ### precisions
+                presM <- matrix(0,3,7)
+                for(i in 1:6){
+                        presM[1,i] <- precs[[i+(j-1)*6]]$s1
+                        presM[2,i] <- precs[[i+(j-1)*6]]$s2
+                        presM[3,i] <- precs[[i+(j-1)*6]]$s3
+                }
+                presM[1,i+1] <- backprec[[i+(j-1)*6]]$s1
+                presM[2,i+1] <- backprec[[i+(j-1)*6]]$s2
+                presM[3,i+1] <- backprec[[i+(j-1)*6]]$s3
+                tmp <- t(presM)
+                
+                # plot each col
+                labs <- c("ARIMA","SARIMA","HW","MLR","MLR_SARIMA","MLR_HW","Previous")
+                ymax <- 1
+                ymin <- 0
+                plot(1:nrow(tmp),tmp[,1],type="b",col=1,main="",xlab="",ylab="",ylim=c(ymin,ymax),xaxt="n",lwd=2)
+                for(i in 2:ncol(tmp)) lines(1:nrow(tmp),tmp[,i],type="b",col=i,lwd=2)
+                axis(1,at=1:nrow(tmp),labels =FALSE)  
+                text(1:nrow(tmp)-7/100, par("usr")[3]-0.1*(ymax-ymin), labels = labs, srt = 45, pos = 1, xpd = TRUE)
+                legend("bottomright",legend=c("预测正确率","趋势正确率","准确率"),lwd=2,col=1:3)
+        }
+        
 }
