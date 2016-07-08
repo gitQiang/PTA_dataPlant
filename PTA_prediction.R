@@ -65,7 +65,7 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
         #==========================================================
         ## one day, one week, one month and one quarter predictions
         fres <- c(1,7,12,4)
-        pers <- c(50,30,20,10)
+        pers <- c(500,100,36,10)
         precs <- list()
         backprec <- list()
         results <- list()
@@ -91,9 +91,9 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
                 }
         }
         
-        save(precs,file="precisions")
-        save(backprec,file="backgroundPrecision")
-        save(results,file="Allresults")
+        save(precs,file="precisions1")
+        save(backprec,file="backgroundPrecision1")
+        save(results,file="Allresults1")
         
         ### error smaller than p
         ### trend correct
