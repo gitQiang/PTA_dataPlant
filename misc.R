@@ -50,7 +50,8 @@ data_filling <- function(){
         path <- "D:/data/恒逸/恒逸共享/调研数据整理/data_v1"
         filenames <- list.files(path,".csv",full.names=TRUE)
         useYears <- 2002:2016
-        useDates <- seq.Date(as.Date("2002-1-1"),as.Date("2016-12-31"),by="day")
+        #useDates <- seq.Date(as.Date("2002-1-1"),as.Date("2016-12-31"),by="day")
+        useDates <- as.Date(read.csv("D:/data/恒逸/恒逸共享/ValidDays2002_2016.csv")[,1])
         useMonths <- paste(year(useDates),month(useDates),sep="-")
         dataM <- c()
         factors <- c()
@@ -481,7 +482,8 @@ toPPT <- function(){
                         resiM[i, ] <- precs[[i+(j-1)*6]]$s4
                 }
                 resiM[i+1, ] <- backprec[[i+(j-1)*6]]$s4
-                write.csv(resiM,file=paste("DAYresi_",j,".csv",sep=""),quote=FALSE,row.names=FALSE)
+                print(i+(j-1)*6)
+                write.csv(resiM,file=paste("residuals_",j,".csv",sep=""),quote=FALSE,row.names=FALSE)
                 
                 
                 ###
@@ -490,7 +492,8 @@ toPPT <- function(){
                         R2M[i, ] <- precs[[i+(j-1)*6]]$s5
                 }
                 R2M[i+1, ] <- backprec[[i+(j-1)*6]]$s5
-                write.csv(R2M,file=paste("DAYR2_",j,".csv",sep=""),quote=FALSE,row.names=FALSE)
+                print(i+(j-1)*6)
+                write.csv(R2M,file=paste("R2_",j,".csv",sep=""),quote=FALSE,row.names=FALSE)
                 
                 ### precisions
                 presM <- matrix(0,3,7)
@@ -499,6 +502,7 @@ toPPT <- function(){
                         presM[2,i] <- precs[[i+(j-1)*6]]$s2
                         presM[3,i] <- precs[[i+(j-1)*6]]$s3
                 }
+                print(i+(j-1)*6)
                 presM[1,i+1] <- backprec[[i+(j-1)*6]]$s1
                 presM[2,i+1] <- backprec[[i+(j-1)*6]]$s2
                 presM[3,i+1] <- backprec[[i+(j-1)*6]]$s3
