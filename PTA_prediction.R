@@ -16,13 +16,6 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
         #   by now, we directly ouput to shiny web site.
         
         #==========================================================
-        rm(list=ls())
-        gc()
-        filenames=NULL
-        trace1=1
-        trans <- 0
-        setwd("D:/code/PTA_dataPlant") ## only for testing ...
-        
         # library and source files
         source("misc.R")
         source("Models.R")
@@ -32,7 +25,7 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
         library(zoo) ## na.approx
         library(forecast) ##CV
         
-        
+        PTA_data <- getUpdateData()
         #==========================================================
         # default parameter settings
         startYear <- 2002
@@ -45,13 +38,15 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
         if(!is.null(filenames)){dataM <- addNewIndex(filenames,useYears);}else{dataM <- c();}
         
         jobid <- jobTrace(1,trace1)
-        data <- data_filling()
-        #load("data_2002_2015")
+        data <- data_fillingNew(PTA_data)
+        rownames(data) <- data[ ,1]
+        data <- data[, -1]
+        
         data <- cbind(data,dataM)
         mode(data) <- "numeric"
 
         # specific setting to PTA Price
-        target <- "å¸‚åœºä»·.PTA.å¯¹è‹¯äºŒç”²é…¸."
+        target <- "ÊÐ³¡¼Û.PTA.¶Ô±½¶þ¼×Ëá."
         sub <- which(colnames(data)==target)
         tmp <- data[,-sub]
         data <- cbind(data[,sub],tmp)
@@ -91,9 +86,9 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
                 }
         }
         
-        save(precs,file="precisions1")
-        save(backprec,file="backgroundPrecision1")
-        save(results,file="Allresults1")
+        # save(precs,file="precisions1")
+        # save(backprec,file="backgroundPrecision1")
+        # save(results,file="Allresults1")
         
         ### error smaller than p
         ### trend correct
@@ -105,22 +100,22 @@ PTA_Prediction <- function(filenames=NULL,trace1=0,trans=0){
   
 }
 
-### é¢„ç•™æŽ¥å£ï¼Œç”¨äºŽèŽ·å–å®žæ—¶æ•°æ®
+### Ô¤Áô½Ó¿Ú£¬ÓÃÓÚ»ñÈ¡ÊµÊ±Êý¾Ý
 getUpdateData <- function(){
-        # wind å®žæ—¶æ•°æ®èŽ·å–, ä»¥å¤©ä¸ºåŸºç¡€
-        library(WindR)
-        w.start()
-        #w_edb_data<-w.edb('S0031529,S0070127','2015-07-13','2016-07-12','')
-        day <- as.character(Sys.Date())
-        w_edb_data<-w.edb('S0031529,S0070127,S0031714,S0031715,S0031716,S0031712,S0028007,S0028008,S0027203,S0027204,S5414121,S0027187,S0027188',day,day,'')
-        newData <- w_edb_data$Data[w_edb_data$Data[,1]== day, ,drop=FALSE]
-        write.csv(newData,file=paste("UpdateData/Wind",day,".csv",sep=""),row.names=FALSE,quote=FALSE)
-        w.stop()
+        library(RMySQL)
+        con <- dbConnect(dbDriver("MySQL"),dbname="mathes_version3",user='etlmathes',password="yAUJ4c",host="172.16.2.244")
+        OldData <- dbReadTable(con,"hengyi_pta_data")
         
+        PTA_data <- OldData[2:nrow(OldData), ]
+        colnames(PTA_data) <- unlist(OldData[1, ])
+       
+        dbDisconnect(con)
+        
+        PTA_data
 }
 
 
-### é¢„ç•™æŽ¥å£ï¼Œç”¨äºŽå¢žåŠ æ–°çš„æ•°æ®æŒ‡æ ‡
+### Ô¤Áô½Ó¿Ú£¬ÓÃÓÚÔö¼ÓÐÂµÄÊý¾ÝÖ¸±ê
 addNewIndex <- function(filenames=NULL,useYears=2002:2016){
         
         startYear <- useYears[1]

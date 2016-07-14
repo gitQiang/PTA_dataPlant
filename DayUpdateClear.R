@@ -33,8 +33,12 @@ rownames(WindData) <- windDic[match(colnames(WindTable)[-1], colnames(windDic) )
 
 
 ### Update Choice
+#file.rename("UpdateData/Choice_PTA.xls", paste("UpdateData/Choice_PTA",Day,".xls",sep=""))
+if(file.exists("UpdateData/Choice_PTA.csv")) file.rename("UpdateData/Choice_PTA.csv", paste("UpdateData/Choice_PTA",Day,".csv",sep=""))
+if(file.exists("UpdateData/Choice_PTA.xls")) file.remove("UpdateData/Choice_PTA.xls")
+
 library(lubridate) ## as.Date
-oneTable <- read.csv("UpdateData/Choice_PTA.csv",skip=0,strip.white=TRUE)
+oneTable <- read.csv(paste("UpdateData/Choice_PTA",Day,".csv",sep=""),skip=0,strip.white=TRUE)
 oneTable <- oneTable[seq(-1,-3,-1), ]
 
 ### repalce special chars
@@ -50,18 +54,14 @@ oneTable[,1] <- paste(year(date),month(date),day(date),sep="-")
 oneTable <- oneTable[order(date),  ]
 
 ##!!!!! only for test
-oneTable[nrow(oneTable), 1] <- Day
+#oneTable[nrow(oneTable), 1] <- Day
 ### !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-choiceDay <- oneTable[oneTable[,1]==Day,-1,drop=FALSE]
+choiceDay <- oneTable[as.Date(oneTable[,1])==Day,-1,drop=FALSE]
 choiceDay <- t(choiceDay)
 
-#file.rename("UpdateData/Choice_PTA.xls", paste("UpdateData/Choice_PTA",Day,".xls",sep=""))
-file.rename("UpdateData/Choice_PTA.csv", paste("UpdateData/Choice_PTA",Day,".csv",sep=""))
-if(file.exists("UpdateData/Choice_PTA.xls")) file.remove("UpdateData/Choice_PTA.xls")
-
-
 oneData <- rbind(oneDay,WindData,choiceDay)
-write.csv(t(oneData), file=paste("UpdateData/UpdateData",Day,".csv",sep=""),row.names=FALSE,quote=FALSE)
+rownames(oneData)[1] <- "Ö¸±êÃû³Æ"
 
+write.csv(t(oneData), file=paste("UpdateData/UpdateData",Day,".csv",sep=""),row.names=FALSE,quote=FALSE)
 

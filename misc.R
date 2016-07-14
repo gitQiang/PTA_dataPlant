@@ -83,6 +83,24 @@ data_filling <- function(){
         dataM
 }
 
+
+data_fillingNew <- function(tmpTable){
+        
+        tmpDate <- as.Date(tmpTable[,1])
+        tmpTable <- fill_NA(tmpTable,len=4)
+        useMonths <- paste(year(tmpDate),month(tmpDate),sep="-")
+        
+        for(j in 2:ncol(tmpTable)){
+                onex<- tmpTable[,j]
+                onex <- fill_onex(useMonths,tof(onex))
+                onex <- na.approx(onex,maxgap=62,na.rm=FALSE)
+                tmpTable[,j] <- onex
+        }
+        
+        tmpTable
+}
+
+
 fill_onex <- function(useMonths,onex){
         uniMon <- unique(useMonths)
         for(i in 1:length(uniMon)){
