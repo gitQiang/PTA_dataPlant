@@ -83,7 +83,6 @@ data_filling <- function(){
         dataM
 }
 
-
 data_fillingNew <- function(tmpTable){
         
         tmpDate <- as.Date(tmpTable[,1])
@@ -99,7 +98,6 @@ data_fillingNew <- function(tmpTable){
         
         tmpTable
 }
-
 
 fill_onex <- function(useMonths,onex){
         uniMon <- unique(useMonths)

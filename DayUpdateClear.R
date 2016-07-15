@@ -53,9 +53,6 @@ date <- as.Date(oneTable[,1])
 oneTable[,1] <- paste(year(date),month(date),day(date),sep="-")
 oneTable <- oneTable[order(date),  ]
 
-##!!!!! only for test
-#oneTable[nrow(oneTable), 1] <- Day
-### !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 choiceDay <- oneTable[as.Date(oneTable[,1])==Day,-1,drop=FALSE]
 choiceDay <- t(choiceDay)
