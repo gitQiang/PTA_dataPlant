@@ -180,11 +180,12 @@ oneDimPredict <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0)
         sdv <- sapply(1:ncol(data), function(i) sd(data[!is.na(data[,i]),i])) ## delete constant columns
         data <- data[, sdv!=0]
         newdata <- timelag_data(data,targetIndex,fre=fre)$newdata ## time lags for all factors
-        sub <- max(delete_NA(newdata[,targetIndex]))-round(0.1*nrow(newdata)) ## delete discontinuous factors
-        newdata <- newdata[,!is.na(newdata[sub,])]
+        sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
+        newdata <- newdata[ , c(TRUE,sub),drop=FALSE]
+        
         ### add time variable
-        tmp <- colnames(newdata)[-targetIndex]
-        newdata <- cbind(newdata[,targetIndex],1:nrow(newdata),newdata[,-targetIndex])
+        tmp <- colnames(newdata)[-1]
+        newdata <- cbind(newdata[,1],1:nrow(newdata),newdata[,-1])
         colnames(newdata) <- c("Target","Time",tmp)
         
         jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
@@ -197,10 +198,7 @@ oneDimPredict <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0)
         i=1
         startT <- which(vNA==dNA[i])[1]
         tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
-        options(warn=-1)
-        endT <- min(which(is.na(tmpnewdata),arr.ind=TRUE)[,1])
-        endT <- ifelse(endT==Inf,nrow(tmpnewdata),endT)
-        options(warn=0)
+        endT <- nrow(tmpnewdata) #which(rownames(newdata)=="p1")
         tmpnewdata <- tmpnewdata[1:(endT-1), !is.na(tmpnewdata[endT-1, ])]
         
         jobid <- jobTrace(jobid,trace1)
@@ -209,6 +207,45 @@ oneDimPredict <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0)
         perform[[k]] <- Models(model,sflag=sflag,tmpnewdata,sub=targetIndex,per=per,fre=fre)
         k <- k+1
         pseudoR <- pseudoPredict(tmpnewdata,per,targetIndex)
+        perform[[k]] <- pseudoR
+        
+        perform
+}
+
+PredictPTA <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0){
+        
+        jobid <- 6
+        jobid <- jobTrace(jobid,trace1)
+        
+        sdv <- sapply(1:ncol(data), function(i) sd(data[!is.na(data[,i]),i])) ## delete constant columns
+        data <- data[, sdv!=0]
+        newdata <- timelag_data(data,targetIndex,fre=fre)$newdata ## time lags for all factors
+        sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
+        newdata <- newdata[ ,c(TRUE,sub)]
+        
+        ### add time variable
+        tmp <- colnames(newdata)[-1]
+        newdata <- cbind(newdata[,1],1:nrow(newdata),newdata[,-1])
+        colnames(newdata) <- c("Target","Time",tmp)
+        
+        jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
+        
+        vNA <- rowSums(is.na(newdata))
+        vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
+        dNA <- sort(unique(vNA),decreasing = TRUE)
+        i=1
+        startT <- max(which(vNA==dNA[i])[1], min(which(!is.na(newdata[,1]))))
+        tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
+
+        
+        jobid <- jobTrace(jobid,trace1)
+        ### output
+        perform <- list();k=1;
+        perform[[k]] <- Models(model,sflag=sflag,tmpnewdata,sub=1,per=per,fre=fre)
+        k <- k+1
+        
+        if(model <= 9){per=fre;}else{per <- sum(is.na(tmpnewdata[,1]));}
+        pseudoR <- pseudoPredict(tmpnewdata,per=per,targetIndex,2)
         perform[[k]] <- pseudoR
         
         perform
@@ -245,11 +282,15 @@ precision_pred <- function(tmp,p=0.03){
         list(s1=s1,s2=s2,s3=s3,s4=s4,s5=s5)
 }
 
-pseudoPredict <- function(tmpdata,per,targetIndex=1){
+pseudoPredict <- function(tmpdata,per,targetIndex=1,flag=1){
         R2 <- 1:per
         preds <- 1:per
         residuals <- 1:per
         n2 <- nrow(tmpdata)
+        if(flag==2){
+                tmpdata[is.na(tmpdata[,targetIndex]), targetIndex] <- tmpdata[max(which(!is.na(tmpdata[,targetIndex]))),targetIndex]       
+        }
+        
         for(n1 in (n2-per):(n2-1)){
                 R2[n1-(n2-per-1)] <- R_squared_hq(tmpdata[2:n1,targetIndex],tmpdata[1:(n1-1),targetIndex])
                 preds[n1-(n2-per-1)] <- tmpdata[n1,targetIndex]
@@ -257,6 +298,20 @@ pseudoPredict <- function(tmpdata,per,targetIndex=1){
         }
        
         list(obs=tmpdata[(n2-per+1):n2,targetIndex],R2=R2,preds=preds,residuals=residuals,para=-1,labs=rownames(tmpdata)[(n2-per+1):n2])
+}
+
+MLR_fill <- function(tmpnewdata){
+        n1 <- which(rownames(tmpnewdata)=="p1")
+        n2 <- nrow(tmpnewdata)
+        tmpnewdata[n1, is.na(tmpnewdata[n1,])] <- tmpnewdata[n1-1, is.na(tmpnewdata[n1,])]
+        tmpnewdata[n1,1] <- NA
+        
+        # if(n2>n1){
+        #         for(i in (n1+1):n2){
+        #         }
+        # }
+        
+        tmpnewdata
 }
 
 sarima_paraNew <- function(x,fre=10,nlag=0){
@@ -369,23 +424,20 @@ stepCV_hq <- function(data,sub=1,cvf=1,dir="backward"){
 }
 
 timelag_data <- function(data,targetIndex,per=20,fre=12,n.model=3){
-        newdata <- data[,targetIndex]
-        newNames <- c()
-        cNames <- colnames(data)
-        
-        xcols <- (1:ncol(data))[-targetIndex]
+        newdata <- c(data[,targetIndex],rep(NA,fre))
         lags <- c()
+        newNames <- c()
         
+        cNames <- colnames(data)
+        xcols <- (1:ncol(data))[-targetIndex]
         for(i in xcols){
                 tmpsubs <- delete_NA(tof(data[,targetIndex]),tof(data[,i]))
                 tmpdata <- data[tmpsubs,c(targetIndex,i)]
                 
                 tmpccf <- ccf(tmpdata[,2],tmpdata[,1],lag.max=min(30,nrow(data)),plot=FALSE,type="correlation")
                 lag <- tmpccf$lag[which.max(abs(tmpccf$acf[tmpccf$lag <= fre]))]
-                #lag <- max(-fre, tmpccf$lag[which.max(abs(tmpccf$acf[tmpccf$lag<0]))])
-                if(length(lag)==0) lag=0
                 
-                bm=1
+                if(length(lag)==0) lag=0
                 Xone <- data[,i,drop=FALSE]
                 None <- cNames[i]
                 
@@ -396,12 +448,16 @@ timelag_data <- function(data,targetIndex,per=20,fre=12,n.model=3){
                         if(lag==0) lag <- -fre
                 }
                 
-                newdata <- cbind(newdata,c(rep(NA,-lag), Xone[1:(nrow(data)+lag),1]));
+                tmp <- c(rep(NA,-lag), Xone)
+                if(length(tmp) < (nrow(data)+fre)) tmp <- c(tmp,rep(NA,(nrow(data)+fre)-length(tmp)))
+                newdata <- cbind(newdata,tmp[1:(nrow(data)+fre)]);
                 newNames <- c(newNames,None)
                 lags <- c(lags,lag)
         }
         colnames(newdata) <- c("Target",newNames)
-        rownames(newdata) <- rownames(data)
+        rownames(newdata) <- c(rownames(data), paste("p",1:fre,sep=""))
+        tmp <- fraction_NA(t(newdata),pNA=1)
+        newdata <- t(tmp)
         lags <- cbind(xcols,lags)
         
         list(newdata=newdata,lags=lags)    

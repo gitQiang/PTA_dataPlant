@@ -22,6 +22,13 @@ Models <- function(model,sflag,tmpnewdata,sub=1,per=per,fre=fre){
         if(model==4) tmp <- MLR_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==5) tmp <- MLR_SARIMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==6) tmp <- MLR_HW_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        
+        if(model==7) tmp <- ARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==8) tmp <- SARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==9) tmp <- HW_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==10) tmp <- MLR_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==11) tmp <- MLR_SARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==12) tmp <- MLR_HW_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
                 
         tmp        
 }
@@ -232,88 +239,66 @@ MLR_HW_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=TRUE,tra
 ######## predicting models
 ARIMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
         
-        #### output 
-        R2 <- 1:per ### R^2 values
-        preds <- 1:per ### predict values
-        para <- c()
-        #### input info
-        n2 <- nrow(tmpnewdata) ### input tmpnewdata length
-        n1 <- n2 -1
+        per <- fre
+        n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
         
         pdq <- arima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
         stsr <- arima(ts(tmpnewdata[1:n1,sub],frequency = pdq[4]),order=pdq[1:3])
-        
-        preds[n1-(n2-per-1)] <- predict(stsr, n.ahead=1)$pred[1]
-        para <- cbind(para,pdq)
-        R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],fitted(stsr))
+        preds <- predict(stsr, n.ahead=per)$pred
+        R2 <- R_squared_hq(tmpnewdata[1:n1,1],fitted(stsr))
         
 
-        list(R2=R2,preds=preds,para=para)
+        list(R2=R2,preds=preds,para=pdq)
 }
 
 
 SARIMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
-
-        #### output 
-        R2 <- 1:per ### R^2 values
-        preds <- 1:per ### predict values
-        para <- c()
-        #### input info
-        n2 <- nrow(tmpnewdata) ### input tmpnewdata length
-        n1 <- n2-1
+        
+        per <- fre
+        n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
         
         pdq <- sarima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
         stsr <- arima(ts(tmpnewdata[1:n1,sub],frequency = pdq[7]),order=pdq[1:3],seasonal = list(order=pdq[4:6],period=pdq[7]))
-      
-        preds[n1-(n2-per-1)] <- predict(stsr, n.ahead=1)$pred[1]
-        para <- cbind(para,pdq)
-        R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],fitted(stsr))
-        
-        
-        list(R2=R2,preds=preds,para=para)
+        preds <- predict(stsr, n.ahead=per)$pred
+        R2 <- R_squared_hq(tmpnewdata[1:n1,sub],fitted(stsr))
+
+        list(R2=R2,preds=preds,para=pdq)
 }
 
 
 HW_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
         
-        #### output 
-        R2 <- 1:per ### R^2 values
-        preds <- 1:per ### predict values
-        para <- c()
-        #### input info
-        n2 <- nrow(tmpnewdata) ### input tmpnewdata length
-        n1 <- n2-1
+        per <- fre
+        n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
         
         stsr <- HoltWinters(ts(tmpnewdata[1:n1,sub],frequency = fre),gamma=FALSE)
-        #### one step prediction
-        preds[n1-(n2-per-1)] <- predict(stsr,1)[1]
-        para <- cbind(para,c(stsr$alpha,stsr$beta,stsr$gamma,stsr$coefficients))
-        R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub], c(tmpnewdata[1:2,sub], stsr$fitted[,"xhat"]))
+        preds <- predict(stsr,per)
+        para <- c(stsr$alpha,stsr$beta,stsr$gamma,stsr$coefficients)
+        R2 <- R_squared_hq(tmpnewdata[1:n1,sub], c(tmpnewdata[1:2,sub], stsr$fitted[,"xhat"]))
         
         list(R2=R2,preds=preds,para=para)
 }
 
 
-MLR_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+MLR_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
         
+        per <- sum(is.na(tmpnewdata[,sub]))
         #### output 
         R2 <- 1:per ### R^2 values
         preds <- 1:per ### predict values
         para <- c()
-        
         n2 <- nrow(tmpnewdata) ### input tmpnewdata length
-        n1 <- n2-1
-        
-        tmpdata <- as.data.frame(tmpnewdata[1:n1,])
-        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
-        mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
-        
-        #### one step prediction
-        preds[n1-(n2-per-1)] <- sum(c(1,tmpnewdata[n1+1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))
-        para <- cbind(para,mlmr$coefficients)
-        R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],fitted(mlmr))
-        residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
-        
+        for(n1 in (n2-per+1):n2){
+                tmpdata <- as.data.frame( tmpnewdata[1:(n2-per), c(TRUE, !is.na(tmpnewdata[n1, -sub]))])
+                
+                xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
+                
+                #### one step prediction
+                preds[n1-(n2-per)] <- sum(c(1,tmpnewdata[n1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))
+                para <- cbind(para,mlmr$coefficients)
+                R2[n1-(n2-per)] <- R_squared_hq(tmpnewdata[1:(n2-per),sub],fitted(mlmr))
+        }
         
         list(R2=R2,preds=preds,para=para)
 }
@@ -321,6 +306,7 @@ MLR_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=FALSE,trace1=
 
 MLR_SARIMA_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,trace1,trans=0){
         
+        per <- sum(is.na(tmpnewdata[,sub]))
         #### output 
         R2 <- 1:per ### R^2 values
         preds <- 1:per ### predict values
@@ -341,11 +327,11 @@ MLR_SARIMA_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,t
                 if(sflag==4) pdq <- c(0,0,0,0,1,0,4) #season
         }
         
-        for(n1 in (n2-per):(n2-1)){
+        for(n1 in (n2-per+1):n2){
                 if(sflag<4){
                         # pdq <- sarima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
-                        stsr <- arima(ts(tmpnewdata[1:n1,sub],frequency = pdq[7]),order=pdq[1:3],seasonal = list(order=pdq[4:6],period=pdq[7]))
-                        tmpdata <- tmpnewdata[1:n1,]
+                        stsr <- arima(ts(tmpnewdata[1:(n2-per),sub],frequency = pdq[7]),order=pdq[1:3],seasonal = list(order=pdq[4:6],period=pdq[7]))
+                        tmpdata <- tmpnewdata[1:(n2-per),  c(TRUE, !is.na(tmpnewdata[n1, -sub]))]
                         tmpdata[,sub] <- stsr$residuals
                         xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
                         mlmr <- lm(paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=as.data.frame(tmpdata))
@@ -353,7 +339,7 @@ MLR_SARIMA_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,t
                 }
                 
                 if(sflag==4){
-                        tmpdata <- as.data.frame(tmpnewdata[1:n1,])
+                        tmpdata <- as.data.frame( tmpnewdata[1:(n2-per), c(TRUE, !is.na(tmpnewdata[n1, -sub]))] )
                         xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
                         mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                         res <- ts(mlmr$residuals,frequency = fre)
@@ -363,9 +349,9 @@ MLR_SARIMA_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,t
                 }
                 
                 if(sflag <= 4){ #### one step prediction
-                        preds[n1-(n2-per-1)] <- sum(c(1,tmpnewdata[n1+1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))  +  predict(stsr, n.ahead=1)$pred[1]
+                        preds[n1-(n2-per)] <- sum(c(1,tmpnewdata[n1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))  +  predict(stsr, n.ahead=n1-n2+per)$pred[n1-n2+per]
                         para <- cbind(para,pdq)
-                        R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],tmpnewdata[1:n1,sub]-res1)
+                        R2[n1-(n2-per)] <- R_squared_hq(tmpnewdata[1:(n2-per),sub],tmpnewdata[1:(n2-per), sub]-res1)
                 }
         }
         
@@ -376,6 +362,7 @@ MLR_SARIMA_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,t
 
 MLR_HW_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,trace1,trans=0){
         
+        per <- sum(is.na(tmpnewdata[,sub]))
         #### output 
         R2 <- 1:per ### R^2 values
         preds <- 1:per ### predict values
@@ -384,10 +371,10 @@ MLR_HW_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,trace
         n2 <- nrow(tmpnewdata) ### input tmpnewdata length
         ### H-W model gamma 
         gamma = FALSE;
-        for(n1 in (n2-per):(n2-1)){
+        for(n1 in (n2-per+1):n2){
                 if(sflag<4){
-                        stsr <- HoltWinters(ts(tmpnewdata[1:n1,sub],frequency = fre),gamma=gamma)
-                        tmpdata <- tmpnewdata[1:n1,]
+                        stsr <- HoltWinters(ts(tmpnewdata[1:(n2-per),sub],frequency = fre),gamma=gamma)
+                        tmpdata <- tmpnewdata[1:(n2-per), c(TRUE, !is.na(tmpnewdata[n1, -sub])) ]
                         
                         tmpdata[,sub] <- tmpdata[,sub] -  c(tmpdata[1:2,sub], stsr$fitted[,"xhat"])
                         xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
@@ -396,7 +383,7 @@ MLR_HW_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,trace
                 }
                 
                 if(sflag==4){
-                        tmpdata <- as.data.frame(tmpnewdata[1:n1,])
+                        tmpdata <- as.data.frame(tmpnewdata[1:(n2-per), c(TRUE, !is.na(tmpnewdata[n1, -sub])) ])
                         xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
                         mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                         res <- ts(mlmr$residuals,frequency = fre)
@@ -405,9 +392,9 @@ MLR_HW_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,trace
                 }
                 
                 #### one step prediction
-                preds[n1-(n2-per-1)] <- sum(c(1,tmpnewdata[n1+1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))  +  predict(stsr,1)[1]
+                preds[n1-(n2-per)] <- sum(c(1,tmpnewdata[n1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))  +  predict(stsr,n1-n2+per)[n1+per-n2]
                 para <- cbind(para,c(stsr$alpha,stsr$beta,stsr$gamma,stsr$coefficients))
-                R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],tmpnewdata[1:n1,sub]-res1)
+                R2[n1-(n2-per)] <- R_squared_hq(tmpnewdata[1:(n2-per),sub],tmpnewdata[1:(n2-per),sub]-res1)
         }
         
         list(R2=R2,preds=preds,para=para)
