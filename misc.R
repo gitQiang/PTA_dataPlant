@@ -480,6 +480,13 @@ delete_NA <- function(oneV,twoV=NULL){
         }
 }
 
+delete_NA2<-function(data){
+        subindex <- which(apply(data,1,FUN = anyNA))
+        subindex <- c(0,subindex,length(subindex)+1)
+        start <- which.max(diff(subindex))
+        (subindex[start]+1):(subindex[start+1]-1)
+}
+
 tof <- function(oneV,na.rm=FALSE,fill=FALSE,f="mean"){
         ## replace function of as.numeric
         options(warn=-1)
