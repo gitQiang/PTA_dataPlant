@@ -2,6 +2,40 @@
 
 Transform to dataPlant for different models to show.
 
+# File lists
+
+getWeather.py: get today weather data
+
+getWeatherData.R: write today weather data into database table (not upload with password)
+
+OldWeather2Database.R: write history weather data into database table (not upload with password)
+
+getWindData.R: write today wind data into database table (not upload with password)
+
+OldWind2Database.R: write history Wind data into database table (not upload with password)
+
+getChoiceData.R: write today choice data into database table (not upload with password)
+
+OldChoice2Database.R: write history choice data into database table (not upload with password)
+
+getUpdateALL.R: read all related data into R space (not upload with password)
+
+misc.R: misc functions for PTA models
+
+Models.R: all models
+
+PTA_prediction.R: main interface function to run (not upload with password)
+
+ChoiceWeatherDataUpdate.bat: windows task file to update data everyday
+
+log.txt: python log file
+
+README: this file
+
+
+
+# Old Version
+
 # Step one:
 
 DataUpdate.bat: update daily data and write the new data table into Mysql database.
