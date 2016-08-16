@@ -353,10 +353,10 @@ sarima_paraNew <- function(x,fre=10,nlag=0){
         
         if(fre==1){sar=0;sma=0;fres=1;}
         
-        minBIC <- 1e9
+        minBIC <- Inf
         pdq <- c(p,d,q,0,sd,0,fre)
         for(f in fres){
-                tmp <- auto.arima(ts(x,frequency = f), d=d, D=sd, max.p=max(p,1), max.q=max(q,1), max.P=max(sar,1), max.Q=max(sma,1), max.d=d, max.D=sd, start.p=0, start.q=0, start.P=0, start.Q=0, seasonal=TRUE, ic="bic",stepwise = FALSE)
+                tmp <- auto.arima(ts(x,frequency = f), d=d, D=sd, max.p=min(max(p,1),3), max.q=min(max(q,1),3), max.P=min(max(sar,1),2), max.Q=min(max(sma,1),2), max.d=d, max.D=sd, start.p=0, start.q=0, start.P=0, start.Q=0, seasonal=TRUE, ic="bic",stepwise = FALSE)
                 onebic <- BIC(tmp)
                 if(onebic < minBIC){ minBIC <- onebic; pdq <- tmp$arma[c(1,6,2,3,7,4,5)]; }
         }
@@ -374,7 +374,7 @@ arima_paraNew <- function(x,fre=10,nlag=0){
         minBIC <- 1e9
         pdq <- c(0,1,0,fre)
         for(f in fres){
-                tmp <- auto.arima(ts(x,frequency = f), d=d, max.p=4, max.q=4, max.d=d, start.p=0, start.q=0, seasonal=FALSE, ic="bic",stepwise = FALSE)
+                tmp <- auto.arima(ts(x,frequency = f), d=d, max.p=3, max.q=3, max.d=d, start.p=0, start.q=0, seasonal=FALSE, ic="bic",stepwise = FALSE)
                 onebic <- BIC(tmp)
                 if(onebic < minBIC){ minBIC <- onebic; pdq <- c(tmp$arma[c(1,6,2)],f); }
         }
@@ -435,7 +435,7 @@ timelag_data <- function(data,targetIndex,per=20,fre=12,n.model=3){
                 tmpdata <- data[tmpsubs,c(targetIndex,i)]
                 
                 tmpccf <- ccf(tmpdata[,2],tmpdata[,1],lag.max=min(30,nrow(data)),plot=FALSE,type="correlation")
-                lag <- tmpccf$lag[which.max(abs(tmpccf$acf[tmpccf$lag <= fre]))]
+                lag <- tmpccf$lag[which.max(abs(tmpccf$acf[tmpccf$lag <= (fre+1)]))]
                 
                 if(length(lag)==0) lag=0
                 Xone <- data[,i,drop=FALSE]
@@ -446,7 +446,10 @@ timelag_data <- function(data,targetIndex,per=20,fre=12,n.model=3){
                 }else if(lag > 0){
                         lag <- lag - fre
                         if(lag==0) lag <- -fre
+                        if(lag>0) lag <- -1
                 }
+                
+                if(fre==1 & lag==-1) lag  <- -2  ## 日度数据至少滞后两天
                 
                 tmp <- c(rep(NA,-lag), Xone)
                 if(length(tmp) < (nrow(data)+fre)) tmp <- c(tmp,rep(NA,(nrow(data)+fre)-length(tmp)))

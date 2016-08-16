@@ -16,7 +16,8 @@ Models <- function(model,sflag,tmpnewdata,sub=1,per=per,fre=fre){
         # per: number of train or predict points
         # fre: the frequency of time-series
         
-        if(model==1) tmp <- ARIMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        #if(model==1) tmp <- ARIMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==1) tmp <- WMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==2) tmp <- SARIMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==3) tmp <- HW_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==4) tmp <- MLR_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
@@ -35,6 +36,23 @@ Models <- function(model,sflag,tmpnewdata,sub=1,per=per,fre=fre){
 
 
 ######## training models
+WMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+        
+        library(TTR)
+        n2 <- nrow(tmpnewdata)
+        n1 <- n2-per
+        #### output 
+        ts <- tmpnewdata[-n2,1]
+        wts <- WMA(ts,2)
+        preds <- wts[n1:(n2-1)]
+        residuals <- tmpnewdata[(n1+1):n2,sub] - preds
+        R2 <- sapply( (n1+1):n2, function(kk) R_squared_hq(tmpnewdata[3:kk,sub],wts[2:(kk-1)]) )
+        para <- rep(2,per)
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+}
+
+
 ARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
         
         #### output 
@@ -53,6 +71,7 @@ ARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,tra
                 para <- cbind(para,pdq)
                 R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],fitted(stsr))
                 residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
+                #print(n1)
         }
         
         list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
@@ -77,6 +96,7 @@ SARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,tr
                 para <- cbind(para,pdq)
                 R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],fitted(stsr))
                 residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
+                #print(n1)
         }
         
         list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
@@ -101,6 +121,7 @@ HW_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1
                 para <- cbind(para,c(stsr$alpha,stsr$beta,stsr$gamma,stsr$coefficients))
                 R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub], c(tmpnewdata[1:2,sub], stsr$fitted[,"xhat"]))
                 residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
+                #print(n1)
         }
         
         list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
