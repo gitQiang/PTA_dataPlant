@@ -16,43 +16,33 @@ Models <- function(model,sflag,tmpnewdata,sub=1,per=per,fre=fre){
         # per: number of train or predict points
         # fre: the frequency of time-series
         
-        #if(model==1) tmp <- ARIMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
-        if(model==1) tmp <- WMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        #funs <- c("ARIMA_T","SARIMA_T","HW_T","MLR_T","MLR_SARIMA_T","MLR_HW_T","WMA_T","VAR_T","ARIMA_P","SARIMA_P","HW_P","MLR_P","MLR_SARIMA_P","MLR_HW_P","WMA_P","VAR_P") 
+        #tmp <- as.function(funs[model], tmpnewdata=tmpnewdata,sub=sub,per=per,fre=fre,sflag=sflag)
+        
+        if(model==1) tmp <- ARIMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==2) tmp <- SARIMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==3) tmp <- HW_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==4) tmp <- MLR_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==5) tmp <- MLR_SARIMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         if(model==6) tmp <- MLR_HW_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==7) tmp <- WMA_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==8) tmp <- VAR_T(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
         
-        if(model==7) tmp <- ARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
-        if(model==8) tmp <- SARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
-        if(model==9) tmp <- HW_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
-        if(model==10) tmp <- MLR_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
-        if(model==11) tmp <- MLR_SARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
-        if(model==12) tmp <- MLR_HW_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
-                
+        n <- 8
+        if(model==n+1) tmp <- ARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==n+2) tmp <- SARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==n+3) tmp <- HW_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==n+4) tmp <- MLR_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==n+5) tmp <- MLR_SARIMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==n+6) tmp <- MLR_HW_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==n+7) tmp <- WMA_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        if(model==n+8) tmp <- VAR_P(tmpnewdata,sub,per=per,fre=fre,sflag=sflag)
+        
         tmp        
 }
 
 
 ######## training models
-WMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
-        
-        library(TTR)
-        n2 <- nrow(tmpnewdata)
-        n1 <- n2-per
-        #### output 
-        ts <- tmpnewdata[-n2,1]
-        wts <- WMA(ts,2)
-        preds <- wts[n1:(n2-1)]
-        residuals <- tmpnewdata[(n1+1):n2,sub] - preds
-        R2 <- sapply( (n1+1):n2, function(kk) R_squared_hq(tmpnewdata[3:kk,sub],wts[2:(kk-1)]) )
-        para <- rep(2,per)
-        
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
-}
-
-
 ARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
         
         #### output 
@@ -257,6 +247,52 @@ MLR_HW_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=TRUE,tra
 }
 
 
+WMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+        
+        library(TTR)
+        n2 <- nrow(tmpnewdata)
+        n1 <- n2-per
+        #### output 
+        ts <- tmpnewdata[-n2,1]
+        #wts <- WMA(ts,2)
+        wts <- EMA(ts,2)
+        if(sflag==1){ preds <- wts[(n1-1):(n2-2)]; }else{preds <- wts[n1:(n2-1)];}
+        
+        residuals <- tmpnewdata[(n1+1):n2,sub] - preds
+        R2 <- sapply( (n1+1):n2, function(kk) R_squared_hq(tmpnewdata[3:kk,sub],wts[2:(kk-1)]) )
+        para <- rep(2,per)
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+}
+
+
+VAR_T <- function(tmpnewdata,sub=1:3,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+        
+        library(vars)
+        #### output 
+        R2 <- 1:per ### R^2 values
+        preds <- 1:per ### predict values
+        residuals <- 1:per
+        para <- c()
+        #### input info
+        n2 <- nrow(tmpnewdata) ### input tmpnewdata length
+        if(sflag==1){ diffdata <- tmpnewdata[3:n2, sub] - tmpnewdata[1:(n2-2), sub];}else{diffdata <- tmpnewdata[2:n2, sub] - tmpnewdata[1:(n2-1), sub];}   
+        
+        L <- nrow(diffdata)
+        sub <- sub[1]
+        for(n1 in (L-per):(L-1)){
+                vmdl <- VAR(diffdata[1:n1,],p=1,type='const')
+                oneP <- predict(vmdl,n.ahead=1)
+                preds[n1-L+per+1] <- oneP$fcst[[1]][1]+tmpnewdata[n1+1,sub]
+                para <- cbind(para,oneP$fcst[[1]][2:4])
+                R2[n1-L+per+1] <- R_squared_hq(tmpnewdata[(n2-L+2):(n1+n2-L),sub],fitted(vmdl)[,sub]+tmpnewdata[(n2-L):(n1+n2-L-2),sub])
+                residuals[n1-L+per+1] <- tmpnewdata[n1+1,sub] - preds[n1-L+per+1]
+        }
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+}
+
+
 ######## predicting models
 ARIMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
         
@@ -420,3 +456,50 @@ MLR_HW_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,trace
         
         list(R2=R2,preds=preds,para=para)
 }
+
+
+WMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+        
+        library(TTR)
+        per <- fre
+        n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
+
+        ts <- tmpnewdata[1:n1,sub]
+        wts <- WMA(ts,2)
+        R2 <- R_squared_hq(tmpnewdata[3:n1,1],wts[2:(n1-1)])
+        
+        preds <- 1:per
+        for(i in 1:per){
+                wts <- WMA(ts,2)
+                #wts <- EMA(ts,2)
+                preds[i] <- wts[n1+i-1]
+                ts <- c(ts,preds[i])
+        }
+        para <- rep(2,per)
+        
+        
+        list(R2=R2,preds=preds,para=para)
+}
+
+
+VAR_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+        
+        library(vars)
+        per <- fre
+        n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
+        
+        n2 <- n1
+        if(sflag==1){ diffdata <- tmpnewdata[3:n2, sub] - tmpnewdata[1:(n2-2), sub];}else{diffdata <- tmpnewdata[2:n2, sub] - tmpnewdata[1:(n2-1), sub];}   
+        
+        vmdl <- VAR(diffdata,p=1,type='const')
+        oneP <- predict(vmdl,n.ahead=per)
+
+        sub <- sub[1]
+        preds <- oneP$fcst[[1]][,1] + tmpnewdata[n1,sub]
+        para <- oneP$fcst[[1]][2:4]
+        R2 <- R_squared_hq(tmpnewdata[(n2-L+2):n1,sub],fitted(vmdl)[,sub]+tmpnewdata[(n2-L):(n1-2),sub])
+                
+        list(R2=R2,preds=preds,para=para)
+}
+
+

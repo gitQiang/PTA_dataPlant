@@ -24,6 +24,8 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         library(lubridate) ## as.Date
         library(zoo) ## na.approx
         library(forecast) ##CV
+        library(TTR) #WMA
+        library(vars) #VAR
         
         PTA_data <- getUpdateData()
         #load("data_2002_2015") ### only for test
@@ -67,9 +69,9 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         results <- list()
         k <- 1
         plot=TRUE
-        #i=1;j=4
+        i=1;j=8
         
-        for(i in 1:4){
+        #for(i in 1:4){
                 jobtmp <- jobTrace(i+1,trace1)
                 tmpdata <- groupPredict(data,i)
                 tmpdata1 <- sapply(1:ncol(tmpdata), function(i) na.approx(tof(tmpdata[,i]),maxgap=5,na.rm=FALSE))
@@ -78,7 +80,7 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
                 tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
 
                 
-                for(j in c(1,2,3,4,5,6)){
+                #for(j in c(1,2,3,4,5,6,7,8)){
                         results[[k]] <- oneDimPredict(tmpdata1,targetIndex=1,fre=fres[i],per=pers[i],sflag=i,model=j) 
                         ### 1) fractions of residuals are smaller than p=0.05; 2) predicted trend corrected; both 1) and 2); 4) residual summary; 5)R2 summary
                         precs[[k]] <- precision_pred(results[[k]][[1]],p=0.05)
@@ -89,8 +91,8 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
                         k <- k+1
                         print(i)
                         print(j)
-                }
-        }
+                #}
+        #}
         
         jobid <- jobTrace(10,trace1)
   

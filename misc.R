@@ -176,31 +176,38 @@ oneDimPredict <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0)
         jobid <- 6
         jobid <- jobTrace(jobid,trace1)
         
+        if(model <= 7){
+                sdv <- sapply(1:ncol(data), function(i) sd(data[!is.na(data[,i]),i])) ## delete constant columns
+                data <- data[, sdv!=0]
+                newdata <- timelag_data(data,targetIndex,fre=fre)$newdata ## time lags for all factors
+                sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
+                newdata <- newdata[ , c(TRUE,sub),drop=FALSE]
+                
+                ### add time variable
+                tmp <- colnames(newdata)[-1]
+                newdata <- cbind(newdata[,1],1:nrow(newdata),newdata[,-1])
+                colnames(newdata) <- c("Target","Time",tmp)
+                
+                jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
+                
+                newdata <- newdata[!is.na(newdata[,1]), ]
+                vNA <- rowSums(is.na(newdata))
+                vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
+                dNA <- sort(unique(vNA),decreasing = TRUE)
+                
+                i=1
+                startT <- which(vNA==dNA[i])[1]
+                tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
+                endT <- nrow(tmpnewdata) #which(rownames(newdata)=="p1")
+                tmpnewdata <- tmpnewdata[1:(endT-1), !is.na(tmpnewdata[endT-1, ])]
+        }else{
+               subcols <- c("Target","Cotlook.A指数","现货价.原油.中国大庆..环太平洋") 
+               targetIndex <- 1:3
+               tmpnewdata <- data[,subcols]
+               tmpnewdata <- tmpnewdata[!apply(tmpnewdata,1,FUN = anyNA), ]
+        }
         
-        sdv <- sapply(1:ncol(data), function(i) sd(data[!is.na(data[,i]),i])) ## delete constant columns
-        data <- data[, sdv!=0]
-        newdata <- timelag_data(data,targetIndex,fre=fre)$newdata ## time lags for all factors
-        sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
-        newdata <- newdata[ , c(TRUE,sub),drop=FALSE]
-        
-        ### add time variable
-        tmp <- colnames(newdata)[-1]
-        newdata <- cbind(newdata[,1],1:nrow(newdata),newdata[,-1])
-        colnames(newdata) <- c("Target","Time",tmp)
-        
-        jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
-        
-        newdata <- newdata[!is.na(newdata[,1]), ]
-        vNA <- rowSums(is.na(newdata))
-        vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
-        dNA <- sort(unique(vNA),decreasing = TRUE)
-        
-        i=1
-        startT <- which(vNA==dNA[i])[1]
-        tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
-        endT <- nrow(tmpnewdata) #which(rownames(newdata)=="p1")
-        tmpnewdata <- tmpnewdata[1:(endT-1), !is.na(tmpnewdata[endT-1, ])]
-        
+
         jobid <- jobTrace(jobid,trace1)
         ### output
         perform <- list();k=1;
@@ -251,8 +258,8 @@ PredictPTA <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0){
         perform
 }
 
-plot_testing <- function(obs,preds,labs){
-        main="";ylab="Price";xlab="";ord="topleft";
+plot_testing <- function(obs,preds,labs,main=""){
+        ylab="Price";xlab="";ord="topleft";
         ymax <- 1.1*max(c(obs,preds))
         ymin <- 0.9*min(c(obs,preds))
         par(mai=c(1.2,1.2,1,1))
