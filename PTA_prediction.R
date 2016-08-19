@@ -27,19 +27,21 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         library(TTR) #WMA
         library(vars) #VAR
         
-        PTA_data <- getUpdateData()
-        
-        colwea <- c("Mean.VisibilityKm","Max.VisibilityKm","Min.VisibilitykM")
+        #PTA_data <- getUpdateData()
+        PTA_data <- getUpdateData_v1()
+        colwea <- c("MeanVisibilityKm","MaxVisibilityKm","MinVisibilitykM")
         tmp <- as.matrix(PTA_data[,colwea])
         tmp[as.numeric(tmp) <= 0] <- NA
-        PTA_data[ ,colwea] <- tmp        
+        PTA_data[ ,colwea] <- tmp
+        PTA_data <- data_filling(PTA_data)
         
         #==========================================================
         # ? upload new indexes
         if(!is.null(filenames)){dataM <- addNewIndex(filenames,useYears);}else{dataM <- c();}
         
         jobid <- jobTrace(1,trace1)
-        data <- data_fillingNew(PTA_data)
+        #data <- data_fillingNew(PTA_data)
+        data <- PTA_data
         rownames(data) <- data[ ,1]
         data <- data[, -1]
         
@@ -47,16 +49,11 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         mode(data) <- "numeric"
 
         # specific setting to PTA Price
-        target <- "市场价.PTA.对苯二甲酸."
+        target <- "市场价PTA对苯二甲酸"
         sub <- which(colnames(data)==target)
         tmp <- data[,-sub]
         data <- cbind(data[,sub],tmp)
         colnames(data)[1] <- "Target"
-        
-        # data index transform
-        # tmp <- data_transform(data[,2:ncol(data)])
-        # colnames(tmp) <- colnames(data)[2:ncol(data)]
-        # data <- cbind(data[,1],tmp)
         
         #==========================================================
         ## one day, one week, one month and one quarter predictions
@@ -69,16 +66,17 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         plot=TRUE
         i=1;j=8
         
-        #for(i in 1:4){
+        for(i in 1:4){
                 jobtmp <- jobTrace(i+1,trace1)
-                tmpdata <- groupPredict(data,i)
-                tmpdata1 <- sapply(1:ncol(tmpdata), function(i) na.approx(tof(tmpdata[,i]),maxgap=5,na.rm=FALSE))
-                colnames(tmpdata1) <- colnames(tmpdata)
-                rownames(tmpdata1) <- rownames(tmpdata)
-                tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
+                tmpdata1 <- groupPredict(data,i)
+                #tmpdata <- groupPredict(data,i)
+                #tmpdata1 <- sapply(1:ncol(tmpdata), function(i) na.approx(tof(tmpdata[,i]),maxgap=5,na.rm=FALSE))
+                #colnames(tmpdata1) <- colnames(tmpdata)
+                #rownames(tmpdata1) <- rownames(tmpdata)
+                #tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
 
                 
-                #for(j in c(1,2,3,4,5,6,7,8)){
+                for(j in c(1,2,3,4,5,6,7,8)){
                         results[[k]] <- oneDimPredict(tmpdata1,targetIndex=1,fre=fres[i],per=pers[i],sflag=i,model=j) 
                         ### 1) fractions of residuals are smaller than p=0.05; 2) predicted trend corrected; both 1) and 2); 4) residual summary; 5)R2 summary
                         precs[[k]] <- precision_pred(results[[k]][[1]],p=0.05)
@@ -89,8 +87,8 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
                         k <- k+1
                         print(i)
                         print(j)
-                #}
-        #}
+                }
+        }
         
         jobid <- jobTrace(10,trace1)
   
@@ -113,13 +111,21 @@ PTA_Model_Predicting <- function(filenames=NULL,trace1=0,trans=0){
         library(zoo) ## na.approx
         library(forecast) ##CV
         
-        PTA_data <- getUpdateData()
+        #PTA_data <- getUpdateData()
+        PTA_data <- getUpdateData_v1()
+        colwea <- c("MeanVisibilityKm","MaxVisibilityKm","MinVisibilitykM")
+        tmp <- as.matrix(PTA_data[,colwea])
+        tmp[as.numeric(tmp) <= 0] <- NA
+        PTA_data[ ,colwea] <- tmp
+        PTA_data <- data_filling(PTA_data)
+        
         #==========================================================
         # ? upload new indexes
         if(!is.null(filenames)){dataM <- addNewIndex(filenames,useYears);}else{dataM <- c();}
         
         jobid <- jobTrace(1,trace1)
-        data <- data_fillingNew(PTA_data)
+        #data <- data_fillingNew(PTA_data)
+        data <- PTA_data
         rownames(data) <- data[ ,1]
         data <- data[, -1]
         
@@ -127,7 +133,7 @@ PTA_Model_Predicting <- function(filenames=NULL,trace1=0,trans=0){
         mode(data) <- "numeric"
         
         # specific setting to PTA Price
-        target <- "市场价.PTA.对苯二甲酸."
+        target <- "市场价PTA对苯二甲酸"
         sub <- which(colnames(data)==target)
         tmp <- data[,-sub]
         data <- cbind(data[,sub],tmp)
@@ -140,11 +146,12 @@ PTA_Model_Predicting <- function(filenames=NULL,trace1=0,trans=0){
         k <- 1
         for(i in 1:4){
                 jobtmp <- jobTrace(i+1,trace1)
-                tmpdata <- groupPredict(data,i)
-                tmpdata1 <- sapply(1:ncol(tmpdata), function(i) na.approx(tof(tmpdata[,i]),maxgap=5,na.rm=FALSE))
-                colnames(tmpdata1) <- colnames(tmpdata)
-                rownames(tmpdata1) <- rownames(tmpdata)
-                tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
+                tmpdata1 <- groupPredict(data,i)
+                #tmpdata <- groupPredict(data,i)
+                #tmpdata1 <- sapply(1:ncol(tmpdata), function(i) na.approx(tof(tmpdata[,i]),maxgap=5,na.rm=FALSE))
+                #colnames(tmpdata1) <- colnames(tmpdata)
+                #rownames(tmpdata1) <- rownames(tmpdata)
+                #tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
         
                 for(j in 9:16){
                         results[[k]] <- PredictPTA(tmpdata1,targetIndex=1,fre=fres[i],per=fres[i],sflag=i,model=j) 
@@ -244,7 +251,7 @@ getUpdateData_v1 <- function(){
         Newdata[match(t3,Newdata[,1]), (n.choi1+n.choi2):(n.choi1+n.choi2+n.weat-2)] <- as.matrix(Weather1[, -1])
         Newdata[match(t4,Newdata[,1]), (n.choi1+n.choi2+n.weat-1):ncol(Newdata)] <- as.matrix(Wind1[, -1])
         
-        tmpcols <- colnames(Newdata)
+        tmpcols <- c("time",colnames(choice1)[-1],colnames(choice2)[-1],colnames(Weather1)[-1],colnames(Wind1)[-1])
         tmpcols <- gsub(":","",tmpcols)
         tmpcols <- gsub("\\(","",tmpcols)
         tmpcols <- gsub("\\)","",tmpcols)

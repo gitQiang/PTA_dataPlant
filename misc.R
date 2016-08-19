@@ -31,7 +31,9 @@ data_filling <- function(PTA_data){
         library(zoo)
         oneM <- PTA_data[,-1]
         oneM[oneM==""] <- NA
+        options(warn=-1)
         mode(oneM) <- "numeric"
+        options(warn=0)
         
         ### delete all NA columns
         subf <- sapply(1:ncol(oneM), function(i) all(is.na(oneM[,i])))
@@ -48,6 +50,7 @@ data_filling <- function(PTA_data){
                 }
         })
         dataM <- cbind(PTA_data[,1],dataM)
+        colnames(dataM) <- colnames(PTA_data)[c(TRUE,!subf)]
         
         dataM
 }
@@ -85,8 +88,8 @@ oneDimPredict <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0)
                 sdv <- sapply(1:ncol(data), function(i) sd(data[!is.na(data[,i]),i])) ## delete constant columns
                 data <- data[, sdv!=0]
                 newdata <- timelag_data(data,targetIndex,fre=fre)$newdata ## time lags for all factors
-                sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
-                newdata <- newdata[ , c(TRUE,sub),drop=FALSE]
+                #sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
+                #newdata <- newdata[ , c(TRUE,sub),drop=FALSE]
                 
                 ### add time variable
                 tmp <- colnames(newdata)[-1]
@@ -95,18 +98,19 @@ oneDimPredict <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0)
                 
                 jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
                 
-                newdata <- newdata[!is.na(newdata[,1]), ]
-                vNA <- rowSums(is.na(newdata))
-                vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
-                dNA <- sort(unique(vNA),decreasing = TRUE)
+                #newdata <- newdata[!is.na(newdata[,1]), ]
+                #vNA <- rowSums(is.na(newdata))
+                #vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
+                #dNA <- sort(unique(vNA),decreasing = TRUE)
                 
-                i=1
-                startT <- which(vNA==dNA[i])[1]
-                tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
-                endT <- nrow(tmpnewdata) #which(rownames(newdata)=="p1")
-                tmpnewdata <- tmpnewdata[1:(endT-1), !is.na(tmpnewdata[endT-1, ])]
+                #i=1
+                #startT <- which(vNA==dNA[i])[1]
+                #tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
+                #endT <- nrow(tmpnewdata) #which(rownames(newdata)=="p1")
+                #tmpnewdata <- tmpnewdata[1:(endT-1), !is.na(tmpnewdata[endT-1, ])]
+                tmpnewdata <- newdata[!is.na(newdata[,1]), ]
         }else{
-               subcols <- c("Target","Cotlook.A指数","现货价.原油.中国大庆..环太平洋") 
+               subcols <- c("Target","CotlookA指数","现货价原油中国大庆环太平洋") 
                tmpnewdata <- data[,subcols]
                tmpnewdata <- tmpnewdata[!apply(tmpnewdata,1,FUN = anyNA), ]
                jobid <- jobid+1
@@ -133,8 +137,8 @@ PredictPTA <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0){
                 sdv <- sapply(1:ncol(data), function(i) sd(data[!is.na(data[,i]),i])) ## delete constant columns
                 data <- data[, sdv!=0]
                 newdata <- timelag_data(data,targetIndex,fre=fre)$newdata ## time lags for all factors
-                sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
-                newdata <- newdata[ ,c(TRUE,sub)]
+                #sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
+                #newdata <- newdata[ ,c(TRUE,sub)]
                 
                 ### add time variable
                 tmp <- colnames(newdata)[-1]
@@ -143,22 +147,23 @@ PredictPTA <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0){
                 
                 jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
                 
-                vNA <- rowSums(is.na(newdata))
-                vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
-                dNA <- sort(unique(vNA),decreasing = TRUE)
-                i=1
-                startT <- max(which(vNA==dNA[i])[1], min(which(!is.na(newdata[,1]))))
-                tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
+                #vNA <- rowSums(is.na(newdata))
+                #vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
+                #dNA <- sort(unique(vNA),decreasing = TRUE)
+                #i=1
+                #startT <- max(which(vNA==dNA[i])[1], min(which(!is.na(newdata[,1]))))
+                #tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
+                tmpnewdata <- newdata
         }else{
-                subcols <- c("Target","Cotlook.A指数","现货价.原油.中国大庆..环太平洋") 
+                subcols <- c("Target","CotlookA指数","现货价原油中国大庆环太平洋") 
                 tmpnewdata <- data[,subcols]
                 tmpnewdata <- tmpnewdata[!is.na(tmpnewdata[,1]), ]
-                tmpnewdata <- tmpnewdata[rowSums(is.na(tmpnewdata)) <= 2, ]
-                if(any(is.na(tmpnewdata))){
-                        tmpsubs <- which(is.na(tmpnewdata),arr.ind = TRUE)
-                        tmpsubs <- tmpsubs[order(tmpsubs[,1]), ]
-                        for(kk in 1:nrow(tmpsubs)) tmpnewdata[tmpsubs[kk,1],tmpsubs[kk,2]] <- tmpnewdata[tmpsubs[kk,1]-1,tmpsubs[kk,2]]
-                }
+                # tmpnewdata <- tmpnewdata[rowSums(is.na(tmpnewdata)) <= 2, ]
+                # if(any(is.na(tmpnewdata))){
+                #         tmpsubs <- which(is.na(tmpnewdata),arr.ind = TRUE)
+                #         tmpsubs <- tmpsubs[order(tmpsubs[,1]), ]
+                #         for(kk in 1:nrow(tmpsubs)) tmpnewdata[tmpsubs[kk,1],tmpsubs[kk,2]] <- tmpnewdata[tmpsubs[kk,1]-1,tmpsubs[kk,2]]
+                # }
                 tmpnewdata <- rbind(tmpnewdata,matrix(NA,fre,3))
                 jobid <- jobid + 1
         }
@@ -371,8 +376,6 @@ timelag_data <- function(data,targetIndex,per=20,fre=12,n.model=3){
         }
         colnames(newdata) <- c("Target",newNames)
         rownames(newdata) <- c(rownames(data), paste("p",1:fre,sep=""))
-        tmp <- fraction_NA(t(newdata),pNA=1)
-        newdata <- t(tmp)
         lags <- cbind(xcols,lags)
         
         list(newdata=newdata,lags=lags)    
