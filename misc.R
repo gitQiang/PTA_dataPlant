@@ -27,124 +27,29 @@ csv_clean <- function(filename,wfile=""){
         
 }
 
-fill_NA <- function(tmpTable,len=4){
+data_filling <- function(PTA_data){
+        library(zoo)
+        oneM <- PTA_data[,-1]
+        oneM[oneM==""] <- NA
+        mode(oneM) <- "numeric"
         
-        tmpNew <- tmpTable[,1]
-        subs <- rep(FALSE,ncol(tmpTable))
-        subs[1] <- TRUE
-        for(i in 2:ncol(tmpTable)){
-                tmp1 <- tof(tmpTable[,i])
-                tmp2 <- na.approx(tmp1,maxgap=len,na.rm=FALSE) 
-                if(!all(is.na(tmp2))){
-                        tmpNew <- cbind(tmpNew,tmp2)
-                        subs[i] <- TRUE
-                }
-        }
-        colnames(tmpNew) <- colnames(tmpTable)[subs]
-        
-        tmpNew
-}
+        ### delete all NA columns
+        subf <- sapply(1:ncol(oneM), function(i) all(is.na(oneM[,i])))
+        oneM <- oneM[,!subf]
+        n <- nrow(oneM)
 
-data_filling <- function(){
-        
-        path <- "D:/data/恒逸/恒逸共享/调研数据整理/data_v1"
-        filenames <- list.files(path,".csv",full.names=TRUE)
-        useYears <- 2002:2016
-        #useDates <- seq.Date(as.Date("2002-1-1"),as.Date("2016-12-31"),by="day")
-        useDates <- as.Date(read.csv("D:/data/恒逸/恒逸共享/ValidDays2002_2016.csv")[,1])
-        useMonths <- paste(year(useDates),month(useDates),sep="-")
-        dataM <- c()
-        factors <- c()
-        
-        for(i in 1:length(filenames)){
-                tmpTable <- csv_clean(filenames[i])
-                tmpDate <- as.Date(tmpTable[,1])
-                tmpTable <- tmpTable[year(tmpDate) %in% useYears,  ]
-                tmpTable <- fill_NA(tmpTable,len=4)
-                
-                if(ncol(tmpTable) >= 2){
-                        tmpDate <- as.Date(tmpTable[,1])
-                        tmpName <- colnames(tmpTable)
-                        
-                        for(j in 2:ncol(tmpTable)){
-                                onex <- rep(NA,length(useDates))
-                                onex[match(tmpDate,useDates)] <- tmpTable[,j]
-                                onex <- fill_onex(useMonths,tof(onex))
-                                onex <- na.approx(onex,maxgap=62,na.rm=FALSE)
-                                dataM <- cbind(dataM,onex)
-                                factors <- c(factors,colnames(tmpTable)[j])
-                        }
+        dataM <- sapply(1:ncol(oneM), function(i){
+                if(anyNA(oneM[,i])){
+                        subna <- which(!is.na( oneM[ ,i] ))
+                        if(subna[1] > 1) oneM[1:(subna[1]-1),i] <- oneM[subna[1],i]    
+                        j=length(subna);
+                        if(subna[j] < n) oneM[(subna[j]+1):n,i] <- oneM[subna[j],i]
+                        oneM[,i] <- na.approx(oneM[,i],maxgap=n,na.rm=FALSE)
                 }
-                
-        }
-        rownames(dataM) <- as.character(useDates)
-        colnames(dataM) <- factors
+        })
+        dataM <- cbind(PTA_data[,1],dataM)
         
         dataM
-}
-
-data_fillingNew <- function(tmpTable){
-        
-        tmpDate <- as.Date(tmpTable[,1])
-        tmpTable <- fill_NA(tmpTable,len=4)
-        useMonths <- paste(year(tmpDate),month(tmpDate),sep="-")
-        
-        for(j in 2:ncol(tmpTable)){
-                onex<- tmpTable[,j]
-                onex <- fill_onex(useMonths,tof(onex))
-                onex <- na.approx(onex,maxgap=62,na.rm=FALSE)
-                tmpTable[,j] <- onex
-        }
-        
-        tmpTable
-}
-
-fill_onex <- function(useMonths,onex){
-        uniMon <- unique(useMonths)
-        for(i in 1:length(uniMon)){
-                tmpsub <- which(useMonths==uniMon[i])
-                tmpmon <- onex[tmpsub]
-                if(!all(is.na(tmpmon))){
-                        if(sum(is.na(tmpmon)) <= 15 ){ 
-                                tmpmon  <- na.approx(tmpmon,maxgap=15,na.rm=FALSE)
-                        }else{
-                                tmpmon[is.na(tmpmon)]  <- mean(tmpmon[!is.na(tmpmon)])  
-                        }
-                        onex[tmpsub] <- tmpmon
-                }
-        }
-        onex
-}
-
-data_transform <- function(data){
-     sapply(1:ncol(data),function(i) onex_transform(data[,i]) )
-}
-
-onex_transform <- function(x){
-        x <- as.numeric(x)
-        sub <- which(!is.na(x))
-        x1 <- x[sub]
-        if(shapiro.test(x1[1:min(5000,length(x1))])$p.value >= 0.05){
-                x1 <- (x1-mean(x1))/sd(x1)
-        }else if(max(abs(x1)) > 10000 & min(x1) >= 1){
-                x1 <- log(x1)
-        }else{
-                x1 <- (x1-min(x1))/(max(x1)-min(x1))
-        }
-        
-        x[sub] <- x1
-        x
-}
-
-Target_transform <- function(x,x0=""){
-        if(x0==""){
-                diff(log(x),1)
-        }else{
-                x1 <- 0:length(x)
-                x1[1] <- as.numeric(x0)
-                for(i in 1:length(x)) x1[i+1] <- exp(x[i]) * x1[i]
-                x1[-1]
-        }
 }
 
 groupPredict <- function(data,i){
@@ -202,9 +107,9 @@ oneDimPredict <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0)
                 tmpnewdata <- tmpnewdata[1:(endT-1), !is.na(tmpnewdata[endT-1, ])]
         }else{
                subcols <- c("Target","Cotlook.A指数","现货价.原油.中国大庆..环太平洋") 
-               targetIndex <- 1:3
                tmpnewdata <- data[,subcols]
                tmpnewdata <- tmpnewdata[!apply(tmpnewdata,1,FUN = anyNA), ]
+               jobid <- jobid+1
         }
         
 
@@ -224,26 +129,40 @@ PredictPTA <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0){
         jobid <- 6
         jobid <- jobTrace(jobid,trace1)
         
-        sdv <- sapply(1:ncol(data), function(i) sd(data[!is.na(data[,i]),i])) ## delete constant columns
-        data <- data[, sdv!=0]
-        newdata <- timelag_data(data,targetIndex,fre=fre)$newdata ## time lags for all factors
-        sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
-        newdata <- newdata[ ,c(TRUE,sub)]
+        if(model<=15){
+                sdv <- sapply(1:ncol(data), function(i) sd(data[!is.na(data[,i]),i])) ## delete constant columns
+                data <- data[, sdv!=0]
+                newdata <- timelag_data(data,targetIndex,fre=fre)$newdata ## time lags for all factors
+                sub <- sapply(2:ncol(newdata), function(i) max(diff(which(!is.na(newdata[,i])),1)) <=1 ) ## delete discontinuous factors
+                newdata <- newdata[ ,c(TRUE,sub)]
+                
+                ### add time variable
+                tmp <- colnames(newdata)[-1]
+                newdata <- cbind(newdata[,1],1:nrow(newdata),newdata[,-1])
+                colnames(newdata) <- c("Target","Time",tmp)
+                
+                jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
+                
+                vNA <- rowSums(is.na(newdata))
+                vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
+                dNA <- sort(unique(vNA),decreasing = TRUE)
+                i=1
+                startT <- max(which(vNA==dNA[i])[1], min(which(!is.na(newdata[,1]))))
+                tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
+        }else{
+                subcols <- c("Target","Cotlook.A指数","现货价.原油.中国大庆..环太平洋") 
+                tmpnewdata <- data[,subcols]
+                tmpnewdata <- tmpnewdata[!is.na(tmpnewdata[,1]), ]
+                tmpnewdata <- tmpnewdata[rowSums(is.na(tmpnewdata)) <= 2, ]
+                if(any(is.na(tmpnewdata))){
+                        tmpsubs <- which(is.na(tmpnewdata),arr.ind = TRUE)
+                        tmpsubs <- tmpsubs[order(tmpsubs[,1]), ]
+                        for(kk in 1:nrow(tmpsubs)) tmpnewdata[tmpsubs[kk,1],tmpsubs[kk,2]] <- tmpnewdata[tmpsubs[kk,1]-1,tmpsubs[kk,2]]
+                }
+                tmpnewdata <- rbind(tmpnewdata,matrix(NA,fre,3))
+                jobid <- jobid + 1
+        }
         
-        ### add time variable
-        tmp <- colnames(newdata)[-1]
-        newdata <- cbind(newdata[,1],1:nrow(newdata),newdata[,-1])
-        colnames(newdata) <- c("Target","Time",tmp)
-        
-        jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
-        
-        vNA <- rowSums(is.na(newdata))
-        vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
-        dNA <- sort(unique(vNA),decreasing = TRUE)
-        i=1
-        startT <- max(which(vNA==dNA[i])[1], min(which(!is.na(newdata[,1]))))
-        tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
-
         
         jobid <- jobTrace(jobid,trace1)
         ### output
@@ -251,7 +170,7 @@ PredictPTA <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0){
         perform[[k]] <- Models(model,sflag=sflag,tmpnewdata,sub=1,per=per,fre=fre)
         k <- k+1
         
-        if(model <= 9){per=fre;}else{per <- sum(is.na(tmpnewdata[,1]));}
+        if(model %in% c(9,10,11,15,16)){per=fre;}else{per <- sum(is.na(tmpnewdata[,1]));}
         pseudoR <- pseudoPredict(tmpnewdata,per=per,targetIndex,2)
         perform[[k]] <- pseudoR
         
@@ -305,20 +224,6 @@ pseudoPredict <- function(tmpdata,per,targetIndex=1,flag=1){
         }
        
         list(obs=tmpdata[(n2-per+1):n2,targetIndex],R2=R2,preds=preds,residuals=residuals,para=-1,labs=rownames(tmpdata)[(n2-per+1):n2])
-}
-
-MLR_fill <- function(tmpnewdata){
-        n1 <- which(rownames(tmpnewdata)=="p1")
-        n2 <- nrow(tmpnewdata)
-        tmpnewdata[n1, is.na(tmpnewdata[n1,])] <- tmpnewdata[n1-1, is.na(tmpnewdata[n1,])]
-        tmpnewdata[n1,1] <- NA
-        
-        # if(n2>n1){
-        #         for(i in (n1+1):n2){
-        #         }
-        # }
-        
-        tmpnewdata
 }
 
 sarima_paraNew <- function(x,fre=10,nlag=0){
@@ -490,7 +395,7 @@ delete_NA <- function(oneV,twoV=NULL){
         }
 }
 
-delete_NA2<-function(data){
+delete_NA2 <- function(data){
         subindex <- which(apply(data,1,FUN = anyNA))
         subindex <- c(0,subindex,length(subindex)+1)
         start <- which.max(diff(subindex))
@@ -511,14 +416,6 @@ tof <- function(oneV,na.rm=FALSE,fill=FALSE,f="mean"){
                 if(f=="zero") oneV[is.na(oneV)] <- 0
         }
         oneV
-}
-
-fraction_NA  <- function(tmp,pNA=0.5){
-        mode(tmp) <- "numeric"
-        ksubs <- rep(TRUE,ncol(tmp))
-        ksubs <- sapply( 1:(ncol(tmp)), function(i) sum(is.na(tmp[,i])) <  pNA*nrow(tmp) )
-        tmp <- tmp[,ksubs]
-        tmp  
 }
 
 R_squared_hq <- function(y,y1){
@@ -560,52 +457,4 @@ jobTrace <- function(job,trace1=0){
         
         job <- job+1
         job
-}
-
-toPPT <- function(){
-        
-        for(j in 1:4){
-                ###
-                resiM <- matrix(0,7,6)
-                for(i in 1:6){
-                        resiM[i, ] <- precs[[i+(j-1)*6]]$s4
-                }
-                resiM[i+1, ] <- backprec[[i+(j-1)*6]]$s4
-                print(i+(j-1)*6)
-                write.csv(resiM,file=paste("residuals_",j,".csv",sep=""),quote=FALSE,row.names=FALSE)
-                
-                
-                ###
-                R2M <- matrix(0,7,6)
-                for(i in 1:6){
-                        R2M[i, ] <- precs[[i+(j-1)*6]]$s5
-                }
-                R2M[i+1, ] <- backprec[[i+(j-1)*6]]$s5
-                print(i+(j-1)*6)
-                write.csv(R2M,file=paste("R2_",j,".csv",sep=""),quote=FALSE,row.names=FALSE)
-                
-                ### precisions
-                presM <- matrix(0,3,7)
-                for(i in 1:6){
-                        presM[1,i] <- precs[[i+(j-1)*6]]$s1
-                        presM[2,i] <- precs[[i+(j-1)*6]]$s2
-                        presM[3,i] <- precs[[i+(j-1)*6]]$s3
-                }
-                print(i+(j-1)*6)
-                presM[1,i+1] <- backprec[[i+(j-1)*6]]$s1
-                presM[2,i+1] <- backprec[[i+(j-1)*6]]$s2
-                presM[3,i+1] <- backprec[[i+(j-1)*6]]$s3
-                tmp <- t(presM)
-                
-                # plot each col
-                labs <- c("ARIMA","SARIMA","HW","MLR","MLR_SARIMA","MLR_HW","Previous")
-                ymax <- 1
-                ymin <- 0
-                plot(1:nrow(tmp),tmp[,1],type="b",col=1,main="",xlab="",ylab="",ylim=c(ymin,ymax),xaxt="n",lwd=2)
-                for(i in 2:ncol(tmp)) lines(1:nrow(tmp),tmp[,i],type="b",col=i,lwd=2)
-                axis(1,at=1:nrow(tmp),labels =FALSE)  
-                text(1:nrow(tmp)-7/100, par("usr")[3]-0.1*(ymax-ymin), labels = labs, srt = 45, pos = 1, xpd = TRUE)
-                legend("bottomright",legend=c("预测正确率","趋势正确率","准确率"),lwd=2,col=1:3)
-        }
-        
 }

@@ -1,4 +1,4 @@
-#' PTA Price Prediction based on six different models.
+#' PTA Price Prediction based on eight different models.
 #' 
 #' More details please contact: Qiang Huang. 
 #' Copyright reserved by Qiang Huang.
@@ -266,8 +266,13 @@ WMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace
 }
 
 
-VAR_T <- function(tmpnewdata,sub=1:3,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+VAR_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+        ### fix moving windows
+        n.limit <- 700
+        ntmp <- nrow(tmpnewdata)
+        if(ntmp > n.limit) tmpnewdata <- tmpnewdata[(ntmp-n.limit+1):ntmp, ]
         
+        ######
         library(vars)
         #### output 
         R2 <- 1:per ### R^2 values
@@ -276,17 +281,16 @@ VAR_T <- function(tmpnewdata,sub=1:3,per=per,fre=fre,sflag=sflag,plotP=FALSE,tra
         para <- c()
         #### input info
         n2 <- nrow(tmpnewdata) ### input tmpnewdata length
-        if(sflag==1){ diffdata <- tmpnewdata[3:n2, sub] - tmpnewdata[1:(n2-2), sub];}else{diffdata <- tmpnewdata[2:n2, sub] - tmpnewdata[1:(n2-1), sub];}   
+        if(sflag==1){ diffdata <- tmpnewdata[3:n2, ] - tmpnewdata[1:(n2-2), ];}else{diffdata <- tmpnewdata[2:n2, ] - tmpnewdata[1:(n2-1), ];}   
         
         L <- nrow(diffdata)
-        sub <- sub[1]
         for(n1 in (L-per):(L-1)){
                 vmdl <- VAR(diffdata[1:n1,],p=1,type='const')
                 oneP <- predict(vmdl,n.ahead=1)
                 preds[n1-L+per+1] <- oneP$fcst[[1]][1]+tmpnewdata[n1+1,sub]
                 para <- cbind(para,oneP$fcst[[1]][2:4])
-                R2[n1-L+per+1] <- R_squared_hq(tmpnewdata[(n2-L+2):(n1+n2-L),sub],fitted(vmdl)[,sub]+tmpnewdata[(n2-L):(n1+n2-L-2),sub])
-                residuals[n1-L+per+1] <- tmpnewdata[n1+1,sub] - preds[n1-L+per+1]
+                R2[n1-L+per+1] <- R_squared_hq(tmpnewdata[(n2-L+2):(n1+n2-L),sub],fitted(vmdl)[,sub]+tmpnewdata[2:n1,sub])
+                residuals[n1-L+per+1] <- tmpnewdata[n1+1+n2-L,sub] - preds[n1-L+per+1]
         }
         
         list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
@@ -483,22 +487,31 @@ WMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace
 
 
 VAR_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace1=0,trans=0){
+        ### fix moving windows
+        n.limit <- 700
+        ntmp <- nrow(tmpnewdata)
+        if(ntmp > (n.limit+fre)) tmpnewdata <- tmpnewdata[(ntmp-n.limit-fre+1):ntmp, ]
         
+        ####
         library(vars)
         per <- fre
         n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
         
         n2 <- n1
-        if(sflag==1){ diffdata <- tmpnewdata[3:n2, sub] - tmpnewdata[1:(n2-2), sub];}else{diffdata <- tmpnewdata[2:n2, sub] - tmpnewdata[1:(n2-1), sub];}   
+        if(sflag==1){ diffdata <- tmpnewdata[3:n2, ] - tmpnewdata[1:(n2-2), ];}else{diffdata <- tmpnewdata[2:n2,] - tmpnewdata[1:(n2-1), ];}   
         
+        L <- nrow(diffdata)
         vmdl <- VAR(diffdata,p=1,type='const')
         oneP <- predict(vmdl,n.ahead=per)
 
-        sub <- sub[1]
-        preds <- oneP$fcst[[1]][,1] + tmpnewdata[n1,sub]
+        preds <- 1:per
+        preds[1] <- oneP$fcst[[1]][1,1] + tmpnewdata[L+1,sub]
+        if(per >= 2){
+                for(i in 2:per) preds[i] <- oneP$fcst[[1]][i,1] + ifelse((L+i)>n1, preds[i-1], tmpnewdata[L+i,sub])
+        }
         para <- oneP$fcst[[1]][2:4]
-        R2 <- R_squared_hq(tmpnewdata[(n2-L+2):n1,sub],fitted(vmdl)[,sub]+tmpnewdata[(n2-L):(n1-2),sub])
-                
+        R2 <- R_squared_hq(tmpnewdata[(n2-L+2):n1,sub],fitted(vmdl)[,sub]+tmpnewdata[2:L,sub])
+        
         list(R2=R2,preds=preds,para=para)
 }
 

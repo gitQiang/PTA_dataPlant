@@ -148,7 +148,7 @@ PTA_Model_Predicting <- function(filenames=NULL,trace1=0,trans=0){
                 rownames(tmpdata1) <- rownames(tmpdata)
                 tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
         
-                for(j in 7:12){
+                for(j in 9:16){
                         results[[k]] <- PredictPTA(tmpdata1,targetIndex=1,fre=fres[i],per=fres[i],sflag=i,model=j) 
                         k <- k+1
                         
@@ -157,7 +157,6 @@ PTA_Model_Predicting <- function(filenames=NULL,trace1=0,trans=0){
                 }
         }
         jobid <- jobTrace(10,trace1)
-        
         
 }
 
@@ -196,6 +195,66 @@ getUpdateData <- function(){
         tmpcols <- gsub("\\(",".",tmpcols)
         tmpcols <- gsub("\\)",".",tmpcols)
         colnames(Newdata) <- tmpcols
+        
+        Newdata
+}
+
+getUpdateData_v1 <- function(){
+        ### 读出wind, choice  data 和 天气数据
+        library(RMySQL)
+        library(DBI)
+        con <- dbConnect(dbDriver("MySQL"),dbname="mathes_version3",user='etlmathes',password="yAUJ4c",host="172.16.2.244")
+        choiceData <- dbReadTable(con,"hengyi_pta_choicedata")
+        choiceDataV1 <- dbReadTable(con,"hengyi_pta_choicedatav1")
+        WindData <- dbReadTable(con,"hengyi_pta_winddata")
+        WeatherData <- dbReadTable(con,"hengyi_pta_weatherdata")
+        dbDisconnect(con)
+        
+        windDic <- c("时间","现货价:原油(中国大庆):环太平洋","产量:服装:当月值","中国棉花价格指数:328","中国棉花价格指数:527","中国棉花价格指数:229","Cotlook:A指数","产量:布:当月值","产量:布:当月同比","产量:聚酯:当月值","产量:聚酯:当月同比","产量:聚酯:累计值","产量:化学纤维:当月值","产量:化学纤维:当月同比")
+        Wind1 <- WindData
+        colnames(Wind1) <- windDic
+        Wind1 <- Wind1[-1, ]
+        n.wind <- ncol(Wind1)
+        
+        Weather1 <- WeatherData[ , -22]
+        colnames(Weather1) <- Weather1[1, ]
+        Weather1 <- Weather1[-1, ]
+        n.weat <- ncol(Weather1)
+        
+        choice1 <- choiceData
+        colnames(choice1) <- choice1[1, ]
+        choice1 <- choice1[-1, ]
+        n.choi1 <- ncol(choice1)
+        
+        choice2 <- choiceDataV1
+        colnames(choice2) <- choice2[1, ]
+        choice2 <- choice2[-1, ]
+        n.choi2 <- ncol(choice2)
+        
+        dd <- c(as.Date(Wind1[,1]), as.Date(Weather1[,1]), as.Date(choice1[,1]), as.Date(choice2[,1]))
+        dd <- dd[!duplicated(dd)]
+        unionDs <- as.character(dd[order(dd)])
+        t1 <- as.character(as.Date(choice1[,1]))
+        t2 <- as.character(as.Date(choice2[,1]))
+        t3 <- as.character(as.Date(Weather1[,1]))
+        t4 <- as.character(as.Date(Wind1[,1]))
+        
+        Newdata <- matrix(NA,length(unionDs),(n.wind+n.weat+n.choi1+n.choi2-3))
+        Newdata[,1] <- unionDs
+        Newdata[match(t1,Newdata[,1]), 2:n.choi1] <- as.matrix(choice1[ ,-1])
+        Newdata[match(t2,Newdata[,1]), (n.choi1+1):(n.choi1+n.choi2-1)] <- as.matrix(choice2[ ,-1])
+        Newdata[match(t3,Newdata[,1]), (n.choi1+n.choi2):(n.choi1+n.choi2+n.weat-2)] <- as.matrix(Weather1[, -1])
+        Newdata[match(t4,Newdata[,1]), (n.choi1+n.choi2+n.weat-1):ncol(Newdata)] <- as.matrix(Wind1[, -1])
+        
+        tmpcols <- colnames(Newdata)
+        tmpcols <- gsub(":","",tmpcols)
+        tmpcols <- gsub("\\(","",tmpcols)
+        tmpcols <- gsub("\\)","",tmpcols)
+        tmpcols <- gsub("\\.","",tmpcols)
+        colnames(Newdata) <- tmpcols
+        
+        sub <- min(which(grepl("2008",Newdata[,1])))
+        Newdata <- Newdata[sub:nrow(Newdata), ]
         
         Newdata
 }
