@@ -28,9 +28,7 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         library(vars) #VAR
         
         PTA_data <- getUpdateData()
-        #load("data_2002_2015") ### only for test
-        #PTA_data <- cbind(rownames(data),data) ### only for test
-        ## clear outliers in weather data
+        
         colwea <- c("Mean.VisibilityKm","Max.VisibilityKm","Min.VisibilitykM")
         tmp <- as.matrix(PTA_data[,colwea])
         tmp[as.numeric(tmp) <= 0] <- NA
