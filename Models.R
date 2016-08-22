@@ -134,7 +134,7 @@ MLR_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace
                 
                 #### one step prediction
                 preds[n1-(n2-per-1)] <- sum(c(1,tmpnewdata[n1+1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))
-                para <- cbind(para,mlmr$coefficients)
+                para <- c(para,length(mlmr$coefficients))
                 R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],fitted(mlmr))
                 residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
         }
@@ -357,7 +357,7 @@ MLR_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace
                 
                 #### one step prediction
                 preds[n1-(n2-per)] <- sum(c(1,tmpnewdata[n1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))
-                para <- cbind(para,mlmr$coefficients)
+                para <- c(para,length(mlmr$coefficients))
                 R2[n1-(n2-per)] <- R_squared_hq(tmpnewdata[1:(n2-per),sub],fitted(mlmr))
         }
         

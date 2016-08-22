@@ -109,6 +109,7 @@ oneDimPredict <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0)
                 #endT <- nrow(tmpnewdata) #which(rownames(newdata)=="p1")
                 #tmpnewdata <- tmpnewdata[1:(endT-1), !is.na(tmpnewdata[endT-1, ])]
                 tmpnewdata <- newdata[!is.na(newdata[,1]), ]
+                tmpnewdata <- tmpnewdata[-c(1:max(fre,2)), ]
         }else{
                subcols <- c("Target","CotlookA指数","现货价原油中国大庆环太平洋") 
                tmpnewdata <- data[,subcols]
@@ -147,13 +148,13 @@ PredictPTA <- function(data,targetIndex,fre,per,sflag,model,trace1=1,trans=0){
                 
                 jobid <- jobTrace(jobid,trace1) # 2: the regression model with arima errors
                 
-                #vNA <- rowSums(is.na(newdata))
-                #vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
-                #dNA <- sort(unique(vNA),decreasing = TRUE)
-                #i=1
-                #startT <- max(which(vNA==dNA[i])[1], min(which(!is.na(newdata[,1]))))
-                #tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
-                tmpnewdata <- newdata
+                # vNA <- rowSums(is.na(newdata))
+                # vNA <- vNA[1:(which(vNA==min(vNA))[1]-1)]
+                # dNA <- sort(unique(vNA),decreasing = TRUE)
+                # i=1
+                # startT <- max(which(vNA==dNA[i])[1], min(which(!is.na(newdata[,1]))))
+                # tmpnewdata <- newdata[startT:nrow(newdata), !is.na(newdata[startT, ])]
+                tmpnewdata <- newdata[-c(1:max(fre,2)), ]
         }else{
                 subcols <- c("Target","CotlookA指数","现货价原油中国大庆环太平洋") 
                 tmpnewdata <- data[,subcols]
@@ -333,7 +334,10 @@ stepCV_hq <- function(data,sub=1,cvf=1,dir="backward"){
                 for(i in 2:length(X)){
                         tmpfit <-  lm(paste(Y," ~ ",paste(c(Xnew,X[i]),sep="",collapse=" + "),sep=""), data=as.data.frame(data))
                         tmpCV <- ifelse(cvf<=4,CV(tmpfit)[cvf],1-CV(tmpfit)[cvf])
+                        if(is.na(tmpCV)) tmpCV <- CV0+1000
                         if(tmpCV < CV0){fit0 <- tmpfit; CV0 <- tmpCV; Xnew <- c(Xnew,X[i]);}
+                        if(length(Xnew) >= (nrow(data)-1)) break;
+                        if(sum(abs(fitted(tmpfit)-data[,Y])) < 0.0001*mean(data[,Y]) ) break;
                 }
         }
         
@@ -352,7 +356,10 @@ timelag_data <- function(data,targetIndex,per=20,fre=12,n.model=3){
                 tmpdata <- data[tmpsubs,c(targetIndex,i)]
                 
                 tmpccf <- ccf(tmpdata[,2],tmpdata[,1],lag.max=min(30,nrow(data)),plot=FALSE,type="correlation")
-                lag <- tmpccf$lag[which.max(abs(tmpccf$acf[tmpccf$lag <= (fre+1)]))]
+                if(fre==1){lagsub <- abs(tmpccf$lag) <= (fre+1);}else{lagsub <- abs(tmpccf$lag) <= fre;}
+                lagone <- tmpccf$lag[lagsub]
+                acfone <- tmpccf$acf[lagsub]
+                lag <- lagone[which.max(abs(acfone))]
                 
                 if(length(lag)==0) lag=0
                 Xone <- data[,i,drop=FALSE]
@@ -367,7 +374,7 @@ timelag_data <- function(data,targetIndex,per=20,fre=12,n.model=3){
                 }
                 
                 if(fre==1 & lag==-1) lag  <- -2  ## 日度数据至少滞后两天
-                
+
                 tmp <- c(rep(NA,-lag), Xone)
                 if(length(tmp) < (nrow(data)+fre)) tmp <- c(tmp,rep(NA,(nrow(data)+fre)-length(tmp)))
                 newdata <- cbind(newdata,tmp[1:(nrow(data)+fre)]);

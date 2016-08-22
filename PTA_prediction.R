@@ -58,13 +58,13 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         #==========================================================
         ## one day, one week, one month and one quarter predictions
         fres <- c(1,5,12,4)
-        pers <- c(20,20,36,10)
+        pers <- c(20,20,30,20)
         precs <- list()
         backprec <- list()
         results <- list()
         k <- 1
         plot=TRUE
-        i=1;j=8
+        i=1;j=1
         
         for(i in 1:4){
                 jobtmp <- jobTrace(i+1,trace1)
@@ -74,7 +74,9 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
                 #colnames(tmpdata1) <- colnames(tmpdata)
                 #rownames(tmpdata1) <- rownames(tmpdata)
                 #tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
-
+                
+                ntmp <- nrow(tmpdata1)
+                if(ntmp > 1500) tmpdata1 <- tmpdata1[(ntmp-1043):ntmp, ]
                 
                 for(j in c(1,2,3,4,5,6,7,8)){
                         results[[k]] <- oneDimPredict(tmpdata1,targetIndex=1,fre=fres[i],per=pers[i],sflag=i,model=j) 
