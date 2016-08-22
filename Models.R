@@ -129,7 +129,7 @@ MLR_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace
         n2 <- nrow(tmpnewdata) ### input tmpnewdata length
         for(n1 in (n2-per):(n2-1)){
                 tmpdata <- as.data.frame(tmpnewdata[1:n1,])
-                xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                 mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                 
                 #### one step prediction
@@ -173,14 +173,14 @@ MLR_SARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=TRUE
                         stsr <- arima(ts(tmpnewdata[1:n1,sub],frequency = pdq[7]),order=pdq[1:3],seasonal = list(order=pdq[4:6],period=pdq[7]))
                         tmpdata <- tmpnewdata[1:n1,]
                         tmpdata[,sub] <- stsr$residuals
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                         mlmr <- lm(paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=as.data.frame(tmpdata))
                         res1 <- mlmr$residuals
                 }
                 
                 if(sflag==4){
                         tmpdata <- as.data.frame(tmpnewdata[1:n1,])
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                         mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                         res <- ts(mlmr$residuals,frequency = fre)
                         pdq <- sarima_paraNew(res,fre=fre)
@@ -221,14 +221,14 @@ MLR_HW_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=TRUE,tra
                         tmpdata <- tmpnewdata[1:n1,]
                         
                         tmpdata[,sub] <- tmpdata[,sub] -  c(tmpdata[1:2,sub], stsr$fitted[,"xhat"])
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                         mlmr <- lm(paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=as.data.frame(tmpdata))
                         res1 <- mlmr$residuals
                 }
                 
                 if(sflag==4){
                         tmpdata <- as.data.frame(tmpnewdata[1:n1,])
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                         mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                         res <- ts(mlmr$residuals,frequency = fre)
                         stsr <- HoltWinters(res,gamma=gamma)
@@ -352,7 +352,7 @@ MLR_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace
         for(n1 in (n2-per+1):n2){
                 tmpdata <- as.data.frame( tmpnewdata[1:(n2-per), c(TRUE, !is.na(tmpnewdata[n1, -sub]))])
                 
-                xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                 mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                 
                 #### one step prediction
@@ -394,14 +394,14 @@ MLR_SARIMA_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,t
                         stsr <- arima(ts(tmpnewdata[1:(n2-per),sub],frequency = pdq[7]),order=pdq[1:3],seasonal = list(order=pdq[4:6],period=pdq[7]))
                         tmpdata <- tmpnewdata[1:(n2-per),  c(TRUE, !is.na(tmpnewdata[n1, -sub]))]
                         tmpdata[,sub] <- stsr$residuals
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                         mlmr <- lm(paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=as.data.frame(tmpdata))
                         res1 <- mlmr$residuals
                 }
                 
                 if(sflag==4){
                         tmpdata <- as.data.frame( tmpnewdata[1:(n2-per), c(TRUE, !is.na(tmpnewdata[n1, -sub]))] )
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                         mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                         res <- ts(mlmr$residuals,frequency = fre)
                         pdq <- sarima_paraNew(res,fre=fre)
@@ -438,14 +438,14 @@ MLR_HW_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag,plotP=TRUE,trace
                         tmpdata <- tmpnewdata[1:(n2-per), c(TRUE, !is.na(tmpnewdata[n1, -sub])) ]
                         
                         tmpdata[,sub] <- tmpdata[,sub] -  c(tmpdata[1:2,sub], stsr$fitted[,"xhat"])
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                         mlmr <- lm(paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=as.data.frame(tmpdata))
                         res1 <- mlmr$residuals
                 }
                 
                 if(sflag==4){
                         tmpdata <- as.data.frame(tmpnewdata[1:(n2-per), c(TRUE, !is.na(tmpnewdata[n1, -sub])) ])
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="forward")
+                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
                         mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                         res <- ts(mlmr$residuals,frequency = fre)
                         stsr <- HoltWinters(res,gamma=gamma)

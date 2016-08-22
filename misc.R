@@ -48,6 +48,7 @@ data_filling <- function(PTA_data){
                         if(subna[j] < n) oneM[(subna[j]+1):n,i] <- oneM[subna[j],i]
                         oneM[,i] <- na.approx(oneM[,i],maxgap=n,na.rm=FALSE)
                 }
+                return(oneM[,i])
         })
         dataM <- cbind(PTA_data[,1],dataM)
         colnames(dataM) <- colnames(PTA_data)[c(TRUE,!subf)]
@@ -338,6 +339,25 @@ stepCV_hq <- function(data,sub=1,cvf=1,dir="backward"){
                         if(tmpCV < CV0){fit0 <- tmpfit; CV0 <- tmpCV; Xnew <- c(Xnew,X[i]);}
                         if(length(Xnew) >= (nrow(data)-1)) break;
                         if(sum(abs(fitted(tmpfit)-data[,Y])) < 0.0001*mean(data[,Y]) ) break;
+                }
+        }
+        
+        if(dir=="inter"){
+                inds <- colnames(data)
+                while(TRUE){
+                        fit <- lm( paste(Y," ~ .",sep=""), data=as.data.frame(data[,inds]))
+                        sfit <- summary(fit)
+                        if(all(sfit$coefficients[,4] < 0.001)){
+                                Xnew <- setdiff(rownames(sfit$coefficients),"(Intercept)")
+                                break
+                        }
+                        sels <- rownames(sfit$coefficients)[sfit$coefficients[,4] < 0.001]
+                        if(length(sels)==0){
+                                Xnew <- setdiff(rownames(sfit$coefficients)[rank(sfit$coefficients[,4]) < 5],"(Intercept)")
+                                break
+                        }
+                        sels <- setdiff(sels,"(Intercept)")
+                        inds <- c(Y,sels)
                 }
         }
         

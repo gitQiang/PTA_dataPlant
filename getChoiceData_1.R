@@ -27,6 +27,8 @@ readcsv_choice <- function(filename){
 
 oneT1 <- readcsv_choice(paste("UpdateData/Choice_PTA_MAC",Day,".csv",sep=""))
 oneT2 <- readcsv_choice(paste("UpdateData/Choice_PTA_EIA",Day,".csv",sep=""))
+oneT1 <- oneT1[oneT1[,1] <= Day, ]
+oneT2 <- oneT2[oneT2[,1] <= Day, ]
 
 dd <- c(as.Date(oneT1[,1]),as.Date(oneT2[,1]))
 dd <- dd[!duplicated(dd)]

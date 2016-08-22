@@ -27,24 +27,22 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         library(TTR) #WMA
         library(vars) #VAR
         
-        #PTA_data <- getUpdateData()
-        PTA_data <- getUpdateData_v1()
+        PTA_data <- getUpdateData()
+        #PTA_data <- getUpdateData_v1()
         colwea <- c("MeanVisibilityKm","MaxVisibilityKm","MinVisibilitykM")
         tmp <- as.matrix(PTA_data[,colwea])
         tmp[as.numeric(tmp) <= 0] <- NA
         PTA_data[ ,colwea] <- tmp
-        PTA_data <- data_filling(PTA_data)
+        data <- data_filling(PTA_data)
+        #data <- data_fillingNew(PTA_data)
         
         #==========================================================
         # ? upload new indexes
         if(!is.null(filenames)){dataM <- addNewIndex(filenames,useYears);}else{dataM <- c();}
         
         jobid <- jobTrace(1,trace1)
-        #data <- data_fillingNew(PTA_data)
-        data <- PTA_data
         rownames(data) <- data[ ,1]
         data <- data[, -1]
-        
         data <- cbind(data,dataM)
         mode(data) <- "numeric"
 
@@ -64,9 +62,9 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         results <- list()
         k <- 1
         plot=TRUE
-        i=1;j=1
+        i=4;j=4
         
-        for(i in 1:4){
+        for(i in 2){
                 jobtmp <- jobTrace(i+1,trace1)
                 tmpdata1 <- groupPredict(data,i)
                 #tmpdata <- groupPredict(data,i)
@@ -75,8 +73,8 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
                 #rownames(tmpdata1) <- rownames(tmpdata)
                 #tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
                 
-                ntmp <- nrow(tmpdata1)
-                if(ntmp > 1500) tmpdata1 <- tmpdata1[(ntmp-1043):ntmp, ]
+                #ntmp <- nrow(tmpdata1)
+                #if(ntmp > 1500) tmpdata1 <- tmpdata1[(ntmp-1043):ntmp, ]
                 
                 for(j in c(1,2,3,4,5,6,7,8)){
                         results[[k]] <- oneDimPredict(tmpdata1,targetIndex=1,fre=fres[i],per=pers[i],sflag=i,model=j) 
@@ -119,15 +117,13 @@ PTA_Model_Predicting <- function(filenames=NULL,trace1=0,trans=0){
         tmp <- as.matrix(PTA_data[,colwea])
         tmp[as.numeric(tmp) <= 0] <- NA
         PTA_data[ ,colwea] <- tmp
-        PTA_data <- data_filling(PTA_data)
+        data <- data_filling(PTA_data)
         
         #==========================================================
         # ? upload new indexes
         if(!is.null(filenames)){dataM <- addNewIndex(filenames,useYears);}else{dataM <- c();}
         
         jobid <- jobTrace(1,trace1)
-        #data <- data_fillingNew(PTA_data)
-        data <- PTA_data
         rownames(data) <- data[ ,1]
         data <- data[, -1]
         
@@ -197,11 +193,15 @@ getUpdateData <- function(){
         
         Newdata <- cbind(choice1[match(timeDays, as.character(as.Date(choice1[,1])) ), ], Weather1[match(timeDays,as.character(as.Date(Weather1[,1]))), -1], Wind1[match(timeDays, as.character(as.Date(Wind1[,1]))), -1])
         
-        tmpcols <- colnames(Newdata)
-        tmpcols <- gsub(":",".",tmpcols)
-        tmpcols <- gsub("\\(",".",tmpcols)
-        tmpcols <- gsub("\\)",".",tmpcols)
+        
+        tmpcols <- c("time",colnames(choice1)[-1],colnames(Weather1)[-1],colnames(Wind1)[-1])
+        tmpcols <- gsub(":","",tmpcols)
+        tmpcols <- gsub("\\(","",tmpcols)
+        tmpcols <- gsub("\\)","",tmpcols)
+        tmpcols <- gsub("\\.","",tmpcols)
         colnames(Newdata) <- tmpcols
+        Newdata <- as.matrix(Newdata)
+        Newdata <- Newdata[,!duplicated(colnames(Newdata))]
         
         Newdata
 }
@@ -260,8 +260,9 @@ getUpdateData_v1 <- function(){
         tmpcols <- gsub("\\.","",tmpcols)
         colnames(Newdata) <- tmpcols
         
-        sub <- min(which(grepl("2008",Newdata[,1])))
+        sub <- min(which(grepl("2004",Newdata[,1])))
         Newdata <- Newdata[sub:nrow(Newdata), ]
+        Newdata <- Newdata[,!duplicated(colnames(Newdata))]
         
         Newdata
 }
