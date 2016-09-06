@@ -79,8 +79,8 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
                 for(j in c(1,2,3,4,5,6,7,8)){
                         results[[k]] <- oneDimPredict(tmpdata1,targetIndex=1,fre=fres[i],per=pers[i],sflag=i,model=j) 
                         ### 1) fractions of residuals are smaller than p=0.05; 2) predicted trend corrected; both 1) and 2); 4) residual summary; 5)R2 summary
-                        precs[[k]] <- precision_pred(results[[k]][[1]],p=0.05)
-                        backprec[[k]] <- precision_pred(results[[k]][[2]],p=0.05)
+                        precs[[k]] <- precision_pred(results[[k]][[1]],p=-1,sflag=i)
+                        backprec[[k]] <- precision_pred(results[[k]][[2]],p=-1,sflag=i)
                         if(plot) plot_testing(results[[k]][[1]]$obs,results[[k]][[1]]$preds,results[[k]][[1]]$labs)
                         
                         

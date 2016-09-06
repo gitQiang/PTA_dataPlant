@@ -199,7 +199,56 @@ plot_testing <- function(obs,preds,labs,main=""){
         legend(ord,legend=c("Observed","Prediction"),col=1:2,lwd=2)         
 }
 
-precision_pred <- function(tmp,p=0.03){
+good_p <- function(){
+        library(RMySQL)
+        library(DBI)
+        con <- dbConnect(dbDriver("MySQL"),dbname="mathes_version3",user='etlmathes',password="yAUJ4c",host="172.16.2.244")
+        choiceData <- dbReadTable(con,"hengyi_pta_choicedata")
+        dbDisconnect(con)
+        
+        choice1 <- choiceData
+        colnames(choice1) <- choice1[1, ]
+        choice1 <- choice1[-1, ]
+        
+        ### based on the recent one year history price
+        library(lubridate)
+        day <- Sys.Date()
+        day1 <- gsub(year(day),year(day)-1,day)
+        
+        tmp <- choice1[, c(1,which(colnames(choice1)=="市场价.PTA.对苯二甲酸."))]
+        tmp <- tmp[as.Date(tmp[,1]) >= day1, ]
+        tmpG <- groupDate(tmp[,1])
+        
+        pV <- sapply(1:ncol(tmpG), function(i){
+                x <- as.numeric(tmp[,2])
+                a1 <- aggregate(x[!is.na(x)],by=list(tmpG[!is.na(x),i]),median)[,2]
+                median(abs(diff(a1)))/median(a1)
+                })
+
+        pV
+}
+
+groupDate <- function(date1){
+        
+        useDates <- as.Date(date1)
+        
+        w1 <- as.numeric(week(useDates))
+        w1[w1<10] <- paste(0,w1[w1<10],sep="")
+        m1 <- as.numeric(month(useDates))
+        m1[m1<10] <- paste(0,m1[m1<10],sep="")
+        
+        gs1 <- paste(year(useDates),w1,sep="-")
+        gs2 <- paste(year(useDates),m1,sep="-")
+        gs3 <- paste(year(useDates),quarter(useDates),sep="-")
+        
+        useDates <- as.character(useDates)
+        useDates <- cbind(useDates,gs1,gs2,gs3)
+        useDates
+}
+
+precision_pred <- function(tmp,p=-1,sflag=1){
+        if(p<0) p <- good_p()[sflag]
+        
         n <- length(tmp$preds)
         dobs <- diff(tmp$obs,1)
         dpred <- diff(tmp$preds,1)
