@@ -14,13 +14,19 @@ test_online <- function(){
         library(vars) #VAR
         
         
-        PTA_data <- getUpdateData()
-        #PTA_data <- getUpdateData_v1()
-        subs8 <- which(grepl("2016-8",PTA_data[,1]))
+        #PTA_data <- getUpdateData()
+        #subs8 <- which(grepl("2016-8",PTA_data[,1]))
+        #tsub <- which(colnames(PTA_data)=="市场价PTA对苯二甲酸")
+        
+        PTA_data <- getUpdateData_v1()
+        tsub <- which(colnames(PTA_data)=="市场价PTA对苯二甲酸")
+        PTA_data <- PTA_data[!is.na(PTA_data[,tsub]), ]
+        
+        subs8 <- which(grepl("2016-08",PTA_data[,1]))
         gdate <- groupDate(PTA_data[,1])
         
         
-        ### 8yue everyday
+        ### 8yue everyday ======
         preds <- rep(0,length(subs8))
         i=1
         k <- 1
@@ -36,11 +42,11 @@ test_online <- function(){
                 preds[k] <- tmp[[1]][[1]]$preds
                 k <- k+1
         }
-        plot_testing(PTA_data[subs8,3],preds,labs=PTA_data[subs8,1])
+        plot_testing(as.numeric(PTA_data[subs8,tsub]),preds,labs=PTA_data[subs8,1])
 
-        ### 8yue five weeks
+        ### 8yue five weeks ======
         w8 <- c("2016-31","2016-32","2016-33","2016-34","2016-35")
-        preds <- rep(0,length(w8))
+        predsW <- rep(0,length(w8))
         i=2
         for(kk in 1:length(w8)){
                 kk1 <- match(w8[kk],gdate[,2]) - 1
@@ -49,23 +55,23 @@ test_online <- function(){
                 trainBest <- PTA_training(onedata,i,per=1)
                 j <- which.min(trainBest) + 8
                 tmp <- PTA_Predicting(onedata,i,j,per=1)      
-                preds[kk] <- tmp[[1]][[1]]$preds[1]
+                predsW[kk] <- tmp[[1]][[1]]$preds[1]
         }
         
-        obs <- aggregate(as.numeric(PTA_data[subs8,3]),by=list(gdate[subs8,2]), mean)[,2]
-        plot_testing(obs,preds,labs=w8)
+        obs <- aggregate(as.numeric(PTA_data[subs8,tsub]),by=list(gdate[subs8,2]), mean)[,2]
+        plot_testing(obs,predsW,labs=w8)
         
         
-        ### 8yue one month
-        preds <- 0
+        ### 8yue one month ======
+        predsM <- 0
         i=3
         kk1 <- subs8[1]-1
         onedata <- PTA_data[1:kk1, ]
         trainBest <- PTA_training(onedata,i,per=1)
         j <- which.min(trainBest) + 8
         tmp <- PTA_Predicting(onedata,i,j,per=1)      
-        preds <- tmp[[1]][[1]]$preds
-        mean(as.numeric(PTA_data[subs8,3]))
+        predsM <- tmp[[1]][[1]]$preds[1]
+        mean(as.numeric(PTA_data[subs8,tsub]))
         
 }
 
@@ -109,6 +115,7 @@ PTA_training <- function(PTA_data,i,per=1){
                 
                 trainBest[j] <- precs[[k]]$s4[3]
                 k <- k+1
+                #print(j)
         }
 
         trainBest
@@ -146,3 +153,4 @@ PTA_Predicting <- function(PTA_data,i,j,per=1){
         
         results             
 }
+

@@ -395,10 +395,11 @@ stepCV_hq <- function(data,sub=1,cvf=1,dir="backward"){
         
         if(dir=="inter"){
                 inds <- colnames(data)
+                inds0 <- inds
                 while(TRUE){
                         fit <- lm( paste(Y," ~ .",sep=""), data=as.data.frame(data[,inds]))
                         sfit <- summary(fit)
-                        if(all(sfit$coefficients[,4] < 0.001)){
+                        if(all(sfit$coefficients[-1,4] < 0.001)){
                                 Xnew <- setdiff(rownames(sfit$coefficients),"(Intercept)")
                                 break
                         }
@@ -409,6 +410,10 @@ stepCV_hq <- function(data,sub=1,cvf=1,dir="backward"){
                         }
                         sels <- setdiff(sels,"(Intercept)")
                         inds <- c(Y,sels)
+                        if(setequal(inds,inds0)){
+                                Xnew <- inds
+                                break
+                        }else{ inds0 <- inds; }
                 }
         }
         
