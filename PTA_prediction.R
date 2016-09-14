@@ -27,8 +27,8 @@ PTA_Model_training <- function(filenames=NULL,trace1=0,trans=0){
         library(TTR) #WMA
         library(vars) #VAR
         
-        PTA_data <- getUpdateData()
-        #PTA_data <- getUpdateData_v1()
+        #PTA_data <- getUpdateData()
+        PTA_data <- getUpdateData_v1()
         colwea <- c("MeanVisibilityKm","MaxVisibilityKm","MinVisibilitykM")
         tmp <- as.matrix(PTA_data[,colwea])
         tmp[as.numeric(tmp) <= 0] <- NA

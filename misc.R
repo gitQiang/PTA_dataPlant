@@ -352,6 +352,8 @@ arima_paraNew <- function(x,fre=10,nlag=0){
 
 stepCV_hq <- function(data,sub=1,cvf=1,dir="backward"){
         ### which measure is used: 1:CV;2:AIC;3:AICc;4:BIC;5:AdjR2 
+        if(dir=="inter" & ncol(data) > nrow(data)) dir="forward"
+        
         
         Y <- colnames(data)[sub]
         X <- colnames(data)[-sub]
