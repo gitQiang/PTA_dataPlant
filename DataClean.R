@@ -44,6 +44,8 @@ getUpdateData_v2 <- function(){
         }
         dd <- dd[!duplicated(dd)]
         unionDs <- as.character(dd[order(as.Date(dd))])
+        ##unionDs <- as.character(timeDate::sort(as.Date(dd)))
+        
         Newdata <- matrix(NA,length(unionDs), n.col)
         Newdata[,1] <- unionDs
         k <- 1
@@ -61,7 +63,7 @@ getUpdateData_v2 <- function(){
         tmpcols <- gsub("\\.","",tmpcols)
         colnames(Newdata) <- tmpcols
         
-        sub <- min(which(grepl("2010",Newdata[,1])))
+        sub <- min(which(grepl("2009",Newdata[,1])))
         Newdata <- Newdata[sub:nrow(Newdata), ]
         ###Newdata <- Newdata[,!duplicated(colnames(Newdata))]
         
@@ -70,7 +72,7 @@ getUpdateData_v2 <- function(){
 
 FirstCheck <- function(){
         
-        source("DataClean.R")
+        #source("DataClean.R")
         Newdata <- getUpdateData_v2()
         Newdata[Newdata==""] <- NA
         data0 <- delRep(Newdata)
@@ -96,7 +98,10 @@ FirstCheck <- function(){
         ## delete redantant factors
         data6 <- delRandant(data5,Y)
         
-        data6
+        data7 <- cbind(Y,data6)
+        rownames(data7) <- rownames(data6)
+        
+        data7
 
         # library(randomForest)
         # ## randomForest methods
@@ -127,14 +132,21 @@ delRep <- function(data){
         data
 }
 
-trans2Week <- function(data0){
+trans2Week <- function(data0,k=1){
         
         rownames(data0) <- data0[,1]
         data0 <- data0[ , -1]
         mode(data0) <- "numeric"
         
         useDates <- as.Date(rownames(data0))
-        gs <- paste(year(useDates),week(useDates),sep="-")
+        
+        if(k==1){
+                gs <- paste(year(useDates),week(useDates),sep="-")
+        }else if(k==2){
+                gs <- paste(year(useDates),month(useDates),sep="-")
+        }else if(k==3){
+                gs <- paste(year(useDates),quarter(useDates),sep="-")       
+        }
         ws <- unique(gs)
 
         tmpdata <- sapply(1:ncol(data0), function(i)  sapply(ws, function(ix) median(data0[gs==ix,i],na.rm = TRUE)) )
@@ -230,9 +242,9 @@ delRandant <- function(data5,Y){
         # tsub <- which(cumsum(props)>0.95)[1]
         # data6 <- pr$x[,1:tsub]
         
-        
-        x <- data5
-        y <- Y
+        n.row <- nrow(data5)
+        x <- data5[-n.row, ]
+        y <- Y[-1]
         a1 <- data.frame(x,y)
         colnames(a1) <- c(paste("X",1:(ncol(a1)-1),sep=""),"Class")
         rownames(a1) <- 1:nrow(a1)
@@ -241,7 +253,8 @@ delRandant <- function(data5,Y){
         w0 <- unlist(information.gain(Class ~., a1))
         # w1 <- unlist(chi.squared(Class~., a1))
         # subset <- cfs(Class ~ ., a1)
-        subs <- which(w0 > 1)
+        tmp <- sort(w0,decreasing = TRUE, index.return=TRUE)
+        subs <- tmp$ix[tmp$x > 1]
         data6 <- data5[, subs]
         
         # tmp <- data5

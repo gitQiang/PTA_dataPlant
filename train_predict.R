@@ -1,147 +1,94 @@
-#' PTA Price Prediction based on linear regression and ARIMA.
+#' PTA Price Prediction on week and month dimension.
 #' 
 #' More details please contact: Qiang Huang. 
 #' Copyright reserved by Qiang Huang.
 #' 
 #'====================================================
-#' Qiang Huang, 2016/07/07, huangqiang@3golden.com.cn
+#' Qiang Huang, 2016/10/07, huangqiang@3golden.com.cn
 #'====================================================
 #'
 
-source("DataClean.R")
-source("miscNew.R")
-source("Models.R")
-library(lubridate) ## as.Date
-library(zoo) ## na.approx
-library(forecast) ##CV
-library(TTR) #WMA
-library(vars) #VAR
-
-##两个问题： 时间周为单位和时间月度为单位的。
+## 两个问题： 时间周为单位和时间月度为单位的。
 ## 预测的时候至少要考虑一个时间点 滞后性， 整体最优的时间滞后点的选择
+## 特征选择的最优化原则是什么？？？
+## SARIMA模型与多元线性回归模型整合的模型直接一个函数就可以实现了，不用分开残差项了？？？
 
-PTA_Model_training <- function(){
+PTA_Models <- function(){
        
+        ## step1 : data cleaning
+        source("DataClean.R")
+        data0 <- FirstCheck()
+        colnames(data0)[1] <- "Target"
+        Y <- data0[,1]
+        x <- data0[, -1]
+        xtrain <- x[-nrow(x), ] ## train --> train and test
+        xpred <- x[nrow(x), ,drop=FALSE]
+        ytrain <- Y[-1]
         
-        jobid <- jobTrace(1,trace1)
-        rownames(data) <- data[ ,1]
-        data <- data[, -1]
-        data <- cbind(data,dataM)
-        mode(data) <- "numeric"
         
-        # specific setting to PTA Price
-        target <- "市场价PTA对苯二甲酸"
-        sub <- which(colnames(data)==target)
-        tmp <- data[,-sub]
-        data <- cbind(data[,sub],tmp)
-        colnames(data)[1] <- "Target"
+        ## step2: training and predicting by models
+        source("miscNew.R")
+        source("Models.R")
+        library(lubridate) ## as.Date
+        library(forecast) ##CV
+        library(TTR) #WMA
+        library(vars) #VAR
         
         #==========================================================
         ## one day, one week, one month and one quarter predictions
-        fres <- c(1,5,12,4)
-        pers <- c(20,20,30,20)
+        fres <- c(52,12,4) ## 53 weeks (one without data)
+        pers <- c(30,20,10)
+        
         precs <- list()
         backprec <- list()
         results <- list()
         k <- 1
         plot=TRUE
-        i=4;j=4
         
-        for(i in 2){
-                jobtmp <- jobTrace(i+1,trace1)
-                tmpdata1 <- groupPredict(data,i)
-                #tmpdata <- groupPredict(data,i)
-                #tmpdata1 <- sapply(1:ncol(tmpdata), function(i) na.approx(tof(tmpdata[,i]),maxgap=5,na.rm=FALSE))
-                #colnames(tmpdata1) <- colnames(tmpdata)
-                #rownames(tmpdata1) <- rownames(tmpdata)
-                #tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
-                
-                #ntmp <- nrow(tmpdata1)
-                #if(ntmp > 1500) tmpdata1 <- tmpdata1[(ntmp-1043):ntmp, ]
-                
-                for(j in c(1,2,3,4,5,6,7,8)){
-                        results[[k]] <- oneDimPredict(tmpdata1,targetIndex=1,fre=fres[i],per=pers[i],sflag=i,model=j) 
-                        ### 1) fractions of residuals are smaller than p=0.05; 2) predicted trend corrected; both 1) and 2); 4) residual summary; 5)R2 summary
-                        precs[[k]] <- precision_pred(results[[k]][[1]],p=-1,sflag=i)
-                        backprec[[k]] <- precision_pred(results[[k]][[2]],p=-1,sflag=i)
-                        if(plot) plot_testing(results[[k]][[1]]$obs,results[[k]][[1]]$preds,results[[k]][[1]]$labs)
+        i=2; ## i=2: week prediction;i=3: month prediction; i=4: season prediction
+        j=1; ## model: 1, ARIMA; 2, SARIMA; 3, HW; 4, MLR; 5, MLR_SARIMA; 6, MLR_HW;
+        
+        #for(i in 2:4){
+                #for(j in 1:8){
+                        
+                        ## prepare train data set
                         
                         
-                        k <- k+1
-                        print(i)
-                        print(j)
-                }
+        
+        for(j in 1:8){               ## training
+        model <- j
+        sflag <- i
+        perform <- list();
+        if(model <= 7){ onetrain <- cbind(ytrain,xtrain);
+        }else{ onetrain <- cbind(ytrain,xtrain[,1:2]);}
+        perform[[1]] <- Models(model,sflag,onetrain,sub=1,per=pers[sflag],fre=fres[sflag])
+        perform[[2]] <- pseudoPredict(onetrain,pers[sflag],1)
+        results[[k]] <- perform
+        k <- k+1
         }
         
-        jobid <- jobTrace(10,trace1)
+        for(k in 1:8) print(mean(abs(results[[k]][[1]]$residuals)))
+        mean(abs(results[[1]][[2]]$residuals))
+        
+        
+                        ## access models
+                        
+                        
+                        # ## predicting
+                        # 
+                        # results[[k]] <- oneDimPredict(tmpdata1,targetIndex=1,fre=fres[i],per=pers[i],sflag=i,model=j) 
+                        # precs[[k]] <- precision_pred(results[[k]][[1]],p=-1,sflag=i)
+                        # backprec[[k]] <- precision_pred(results[[k]][[2]],p=-1,sflag=i)
+                        # if(plot) plot_testing(results[[k]][[1]]$obs,results[[k]][[1]]$preds,results[[k]][[1]]$labs)
+                        # 
+                        # 
+                        # ### one prediction
+                        # k <- k+1
+               # }
+        #}
+        
+        ##  step3: best model selection and visualization
+        
         
 }
 
-
-PTA_Model_Predicting <- function(filenames=NULL,trace1=0,trans=0){
-        # options
-        #   filenames: filenames of add new indexes.
-        #   trace1: print or not the running trace, 1 print, 0 not print
-        #   trans: transformation for target index, 0 raw price, 1 diff(log,1)
-        
-        #==========================================================
-        # library and source files
-        source("misc.R")
-        source("Models.R")
-        jobid <- jobTrace(11,trace1);
-        jobid <- jobTrace(12,trace1);
-        library(lubridate) ## as.Date
-        library(zoo) ## na.approx
-        library(forecast) ##CV
-        
-        #PTA_data <- getUpdateData()
-        PTA_data <- getUpdateData_v1()
-        colwea <- c("MeanVisibilityKm","MaxVisibilityKm","MinVisibilitykM")
-        tmp <- as.matrix(PTA_data[,colwea])
-        tmp[as.numeric(tmp) <= 0] <- NA
-        PTA_data[ ,colwea] <- tmp
-        data <- data_filling(PTA_data)
-        
-        #==========================================================
-        # ? upload new indexes
-        if(!is.null(filenames)){dataM <- addNewIndex(filenames,useYears);}else{dataM <- c();}
-        
-        jobid <- jobTrace(1,trace1)
-        rownames(data) <- data[ ,1]
-        data <- data[, -1]
-        
-        data <- cbind(data,dataM)
-        mode(data) <- "numeric"
-        
-        # specific setting to PTA Price
-        target <- "市场价PTA对苯二甲酸"
-        sub <- which(colnames(data)==target)
-        tmp <- data[,-sub]
-        data <- cbind(data[,sub],tmp)
-        colnames(data)[1] <- "Target"
-        
-        #==========================================================
-        ## one day, one week, one month and one quarter predictions
-        fres <- c(1,5,12,4)
-        results <- list()
-        k <- 1
-        for(i in 1:4){
-                jobtmp <- jobTrace(i+1,trace1)
-                tmpdata1 <- groupPredict(data,i)
-                #tmpdata <- groupPredict(data,i)
-                #tmpdata1 <- sapply(1:ncol(tmpdata), function(i) na.approx(tof(tmpdata[,i]),maxgap=5,na.rm=FALSE))
-                #colnames(tmpdata1) <- colnames(tmpdata)
-                #rownames(tmpdata1) <- rownames(tmpdata)
-                #tmpdata1 <- fraction_NA(tmpdata1,pNA=0.5)
-                
-                for(j in 9:16){
-                        results[[k]] <- PredictPTA(tmpdata1,targetIndex=1,fre=fres[i],per=fres[i],sflag=i,model=j) 
-                        k <- k+1
-                        
-                        print(i)
-                        print(j)
-                }
-        }
-        jobid <- jobTrace(10,trace1)
-        
-}
