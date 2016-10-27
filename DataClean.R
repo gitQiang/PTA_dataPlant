@@ -73,6 +73,7 @@ getUpdateData_v2 <- function(){
 FirstCheck <- function(){
         
         #source("DataClean.R")
+        library(lubridate)
         Newdata <- getUpdateData_v2()
         Newdata[Newdata==""] <- NA
         data0 <- delRep(Newdata)
@@ -249,7 +250,7 @@ delRandant <- function(data5,Y){
         colnames(a1) <- c(paste("X",1:(ncol(a1)-1),sep=""),"Class")
         rownames(a1) <- 1:nrow(a1)
         
-        library(FSelector)
+        library(FSelector)  ## varSelRF
         w0 <- unlist(information.gain(Class ~., a1))
         # w1 <- unlist(chi.squared(Class~., a1))
         # subset <- cfs(Class ~ ., a1)
@@ -270,3 +271,53 @@ delRandant <- function(data5,Y){
         
         data6
 }
+
+FeaSelect <- function(data5,Y,k=1){
+        
+        n.row <- nrow(data5)
+        x <- data5[-n.row, ]
+        y <- Y[-1]
+        a1 <- data.frame(x,y)
+        colnames(a1) <- c(paste("X",1:(ncol(a1)-1),sep=""),"Class")
+        rownames(a1) <- 1:nrow(a1)
+        
+        
+        if(k==1){
+        
+        library(FSelector)
+        w0 <- unlist(information.gain(Class ~., a1))
+        # w1 <- unlist(chi.squared(Class~., a1))
+        # subset <- cfs(Class ~ ., a1)
+        tmp <- sort(w0,decreasing = TRUE, index.return=TRUE)
+        subs <- tmp$ix[tmp$x > 1]
+        data6 <- data5[, subs]
+        
+        }
+        
+        if(k==2){
+         
+        library(caret)       
+                
+                
+        }
+        
+        if(k==3){
+                
+        library(Boruta)        
+                
+        }
+        
+        if(k==4){
+                # pr <- prcomp(data5, scale = FALSE)
+                # vars <- apply(pr$x, 2, var)
+                # props <- vars / sum(vars)
+                # tsub <- which(cumsum(props)>0.95)[1]
+                # data6 <- pr$x[,1:tsub]
+                
+                
+                
+                }
+        
+        data6
+}
+

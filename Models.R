@@ -129,7 +129,8 @@ MLR_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,trace
         n2 <- nrow(tmpnewdata) ### input tmpnewdata length
         for(n1 in (n2-per):(n2-1)){
                 tmpdata <- as.data.frame(tmpnewdata[1:n1,])
-                xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                #xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                xnew <- colnames(tmpnewdata)[-sub]
                 mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                 
                 #### one step prediction
