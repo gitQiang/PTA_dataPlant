@@ -97,19 +97,13 @@ FirstCheck <- function(){
         data5 <- dataNormal(data4)
         
         ## delete redantant factors
-        data6 <- delRandant(data5,Y)
+        #data6 <- FeaSelect(data5,Y, k=1)
+        data6 <- data5
         
         data7 <- cbind(Y,data6)
         rownames(data7) <- rownames(data6)
         
         data7
-
-        # library(randomForest)
-        # ## randomForest methods
-        # fit.rf <- randomForest(Class ~ ., data=a1, importance=TRUE, proximity=TRUE)
-        # fit.rf
-        # plot(density(abs(y-fit.rf$predicted) ) )
-
 }
 
 delRep <- function(data){
@@ -235,89 +229,77 @@ dataNormal <-  function(data4){
         data5
 }
 
-delRandant <- function(data5,Y){
-        
-        # pr <- prcomp(data5, scale = FALSE)
-        # vars <- apply(pr$x, 2, var)
-        # props <- vars / sum(vars)
-        # tsub <- which(cumsum(props)>0.95)[1]
-        # data6 <- pr$x[,1:tsub]
-        
-        n.row <- nrow(data5)
-        x <- data5[-n.row, ]
-        y <- Y[-1]
-        a1 <- data.frame(x,y)
-        colnames(a1) <- c(paste("X",1:(ncol(a1)-1),sep=""),"Class")
-        rownames(a1) <- 1:nrow(a1)
-        
-        library(FSelector)  ## varSelRF
-        w0 <- unlist(information.gain(Class ~., a1))
-        # w1 <- unlist(chi.squared(Class~., a1))
-        # subset <- cfs(Class ~ ., a1)
-        tmp <- sort(w0,decreasing = TRUE, index.return=TRUE)
-        subs <- tmp$ix[tmp$x > 1]
-        data6 <- data5[, subs]
-        
-        # tmp <- data5
-        # colnames(tmp) <- 1:ncol(data5)
-        # 
-        # d0 <- dist(t(tmp))
-        # h2 <- hclust(d0) 
-        # plot(h2)
-        # 
-        # d <- 1 - abs(cor(tmp))
-        # h1 <- hclust(as.dist(d)) 
-        # plot(h1)
-        
-        data6
-}
-
 FeaSelect <- function(data5,Y,k=1){
         
-        n.row <- nrow(data5)
-        x <- data5[-n.row, ]
-        y <- Y[-1]
-        a1 <- data.frame(x,y)
-        colnames(a1) <- c(paste("X",1:(ncol(a1)-1),sep=""),"Class")
-        rownames(a1) <- 1:nrow(a1)
-        
-        
+        ### based on information theory
         if(k==1){
-        
-        library(FSelector)
-        w0 <- unlist(information.gain(Class ~., a1))
-        # w1 <- unlist(chi.squared(Class~., a1))
-        # subset <- cfs(Class ~ ., a1)
-        tmp <- sort(w0,decreasing = TRUE, index.return=TRUE)
-        subs <- tmp$ix[tmp$x > 1]
-        data6 <- data5[, subs]
-        
+                n.row <- nrow(data5)
+                x <- data5[-n.row, ]
+                y <- Y[-1]
+                a1 <- data.frame(x,y)
+                colnames(a1) <- c(paste("X",1:(ncol(a1)-1),sep=""),"Class")
+                rownames(a1) <- 1:nrow(a1)
+                
+                
+                library(FSelector)
+                w0 <- unlist(information.gain(Class ~., a1))
+                # w1 <- unlist(chi.squared(Class~., a1))
+                # subset <- cfs(Class ~ ., a1)
+                tmp <- sort(w0,decreasing = TRUE, index.return=TRUE)
+                subs <- tmp$ix[tmp$x >= 1]
+                data6 <- data5[, subs]
         }
         
+        ## caret based not used by now
         if(k==2){
-         
-        library(caret)       
                 
-                
+                library(caret)   
+                #fitControl <- trainControl(method = "boot",  verboseIter = FALSE) 
+                #glmFit <- train(x, y, method = "glmStepAIC",tuneLength = 4,trControl = fitControl) 
+                n.fea <- 20
+                control <- rfeControl(functions = lmFuncs, method = "boot", verbose = FALSE, returnResamp = "final", number = 50)
+                p1 <- rfe(x, y, sizes = n.fea, rfeControl = control, verbose = FALSE)
+                predictors(p1)
+        
         }
         
+        #  for classifiers and regression training
+        # library(Boruta)   # it use random forest for classifiers
+        # limitations: http://www.cybaea.net/journal/2010/11/15/Feature-selection-All-relevant-selection-with-the-Boruta-package/
+                
+        ## based on PCA
         if(k==3){
-                
-        library(Boruta)        
-                
+                pr <- prcomp(data5, scale = FALSE)
+                vars <- apply(pr$x, 2, var)
+                props <- vars / sum(vars)
+                tsub <- which(cumsum(props)>0.95)[1]
+                data6 <- pr$x[,1:tsub]
         }
         
+        ## based on hclust
         if(k==4){
-                # pr <- prcomp(data5, scale = FALSE)
-                # vars <- apply(pr$x, 2, var)
-                # props <- vars / sum(vars)
-                # tsub <- which(cumsum(props)>0.95)[1]
-                # data6 <- pr$x[,1:tsub]
+                tmp <- data5
+                colnames(tmp) <- 1:ncol(data5)
                 
+                # d0 <- dist(t(tmp))
+                d0 <- 1 - abs(cor(tmp))
+                d0 <- as.dist(d0)
+                h1 <- hclust(d0)
                 
+                hv <- seq(min(h1$height),max(h1$height),length.out = 20)
+                nclv <- sapply(1:length(hv), function(k) length(unique(cutree(h1,h=hv[k]))))
                 
+                nsub <- which(nclv < min(30,nrow(data5)-1))[1]
+                labs <- cutree(h1,h=hv[nsub])   
+                n.fea <- length(unique(labs))
+                data6 <- c()
+                for(i in 1:n.fea){
+                        tmp <- data5[,labs==i,drop=FALSE]
+                        data6 <- cbind(data6,rowMeans(tmp))
                 }
+                colnames(data6) <- paste("c",1:ncol(data6),sep="")
+        }
+        
         
         data6
 }
-

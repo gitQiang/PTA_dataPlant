@@ -55,19 +55,19 @@ PTA_Models <- function(){
                         
                         
         
-        for(j in 1:8){               ## training
-        model <- j
-        sflag <- i
-        perform <- list();
-        if(model <= 7){ onetrain <- cbind(ytrain,xtrain);
-        }else{ onetrain <- cbind(ytrain,xtrain[,1:2]);}
-        perform[[1]] <- Models(model,sflag,onetrain,sub=1,per=pers[sflag],fre=fres[sflag])
-        perform[[2]] <- pseudoPredict(onetrain,pers[sflag],1)
-        results[[k]] <- perform
-        k <- k+1
-        }
+        #for(j in 1:8){               ## training
+                model <- j
+                sflag <- i
+                perform <- list();
+                if(model <= 7){ onetrain <- cbind(ytrain,xtrain);
+                }else{ onetrain <- cbind(ytrain,xtrain[,1:2]);}
+                perform[[1]] <- Models(model,sflag,onetrain,sub=1,per=pers[sflag],fre=fres[sflag])
+                perform[[2]] <- pseudoPredict(onetrain,pers[sflag],1)
+                results[[k]] <- perform
+                k <- k+1
+        #}
         
-        for(k in 1:8) print(mean(abs(results[[k]][[1]]$residuals)))
+        for(k in 1) print(mean(abs(results[[k]][[1]]$residuals)))
         mean(abs(results[[1]][[2]]$residuals))
         
         

@@ -1,3 +1,22 @@
+FSel <- function(x,y){
+        
+        a1 <- data.frame(x,y)
+        colnames(a1) <- c(paste("X",1:(ncol(a1)-1),sep=""),"Class")
+        rownames(a1) <- 1:nrow(a1)
+        
+        library(FSelector)
+        w0 <- unlist(information.gain(Class ~., a1))
+        tmp <- sort(w0,decreasing = TRUE, index.return=TRUE)
+        if(any(tmp$x >= 1)){
+                subs <- tmp$ix[tmp$x >= 1]
+        }else{
+                subs <- tmp$ix[1:5]
+                print(tmp$x[1:5])
+        }
+        
+        subs
+}
+
 plot_testing <- function(obs,preds,labs,main=""){
         ylab="Price";xlab="";ord="topleft";
         ymax <- 1.1*max(c(obs,preds))
@@ -162,76 +181,6 @@ arima_paraNew <- function(x,fre=10,nlag=0){
         }
         
         pdq
-}
-
-stepCV_hq <- function(data,sub=1,cvf=1,dir="backward"){
-        ### which measure is used: 1:CV;2:AIC;3:AICc;4:BIC;5:AdjR2 
-        if(dir=="inter" & ncol(data) > nrow(data)) dir="forward"
-        
-        
-        Y <- colnames(data)[sub]
-        X <- colnames(data)[-sub]
-        CVs <- sapply(X, function(i) CV(lm( paste(Y,"~",i,sep=""),  data=as.data.frame(data) ))[cvf])
-        if(cvf==5){CVs = 1-CVs;}
-        
-        
-        if(dir=="backward"){
-                fit0 <- lm(paste(Y,"~.",sep=""), data=as.data.frame(data))
-                print(CV(fit0))
-                CV0 <- ifelse(cvf<=4,CV(fit0)[cvf],1-CV(fit0)[cvf])
-                tmp <- sort(CVs,decreasing = TRUE, index.return=TRUE)
-                X <- X[tmp$ix]
-                Xnew <- X;
-                for(i in 1:length(X)){
-                        tmpfit <-  lm(paste(Y," ~ ",paste(setdiff(Xnew,X[i]),sep="",collapse=" + "),sep=""), data=as.data.frame(data))
-                        tmpCV <- ifelse(cvf<=4,CV(tmpfit)[cvf],1-CV(tmpfit)[cvf])
-                        print(tmpCV)
-                        print(CV0)
-                        if(tmpCV < CV0){fit0 <- tmpfit; CV0 <- tmpCV; Xnew <- setdiff(Xnew,X[i]);}
-                }
-        }
-        
-        if(dir=="forward"){
-                tmp <- sort(CVs, index.return=TRUE)
-                X <- X[tmp$ix]
-                Xnew <- X[1];
-                fit0 <-  lm(paste(Y," ~ ",X[1],sep=""), data=as.data.frame(data))
-                CV0 <- ifelse(cvf<=4,CV(fit0)[cvf],1 - CV(fit0)[cvf])
-                for(i in 2:length(X)){
-                        tmpfit <-  lm(paste(Y," ~ ",paste(c(Xnew,X[i]),sep="",collapse=" + "),sep=""), data=as.data.frame(data))
-                        tmpCV <- ifelse(cvf<=4,CV(tmpfit)[cvf],1-CV(tmpfit)[cvf])
-                        if(is.na(tmpCV)) tmpCV <- CV0+1000
-                        if(tmpCV < CV0){fit0 <- tmpfit; CV0 <- tmpCV; Xnew <- c(Xnew,X[i]);}
-                        if(length(Xnew) >= (nrow(data)-1)) break;
-                        if(sum(abs(fitted(tmpfit)-data[,Y])) < 0.0001*mean(data[,Y]) ) break;
-                }
-        }
-        
-        if(dir=="inter"){
-                inds <- colnames(data)
-                inds0 <- inds
-                while(TRUE){
-                        fit <- lm( paste(Y," ~ .",sep=""), data=as.data.frame(data[,inds]))
-                        sfit <- summary(fit)
-                        if(all(sfit$coefficients[-1,4] < 0.001)){
-                                Xnew <- setdiff(rownames(sfit$coefficients),"(Intercept)")
-                                break
-                        }
-                        sels <- rownames(sfit$coefficients)[sfit$coefficients[,4] < 0.001]
-                        if(length(sels)==0){
-                                Xnew <- setdiff(rownames(sfit$coefficients)[rank(sfit$coefficients[,4]) < 5],"(Intercept)")
-                                break
-                        }
-                        sels <- setdiff(sels,"(Intercept)")
-                        inds <- c(Y,sels)
-                        if(setequal(inds,inds0)){
-                                Xnew <- inds
-                                break
-                        }else{ inds0 <- inds; }
-                }
-        }
-        
-        Xnew
 }
 
 tof <- function(oneV,na.rm=FALSE,fill=FALSE,f="mean"){

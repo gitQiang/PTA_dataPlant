@@ -53,7 +53,7 @@ ARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=FALSE,tra
         #### input info
         n2 <- nrow(tmpnewdata) ### input tmpnewdata length
         for(n1 in (n2-per):(n2-1)){
-                pdq <- arima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
+                pdq <- c(2,1,3,52) #arima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
                 stsr <- arima(ts(tmpnewdata[1:n1,sub],frequency = pdq[4]),order=pdq[1:3])
 
                 #### one step prediction
@@ -155,33 +155,24 @@ MLR_SARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=TRUE
         n2 <- nrow(tmpnewdata) ### input tmpnewdata length
         labs0 <- rownames(tmpnewdata)      
         
-        if(trans==0){
-                if(sflag==1) pdq <- c(1,1,2,0,0,0,1) #day
-                if(sflag==2) pdq <- c(1,1,1,2,1,0,7) #week
-                if(sflag==3) pdq <- c(0,1,1,0,1,1,11) #month
-                if(sflag==4) pdq <- c(0,1,0,0,1,0,4) #season
-                if(sflag==5) pdq <- c(1,0,1,0,1,1,10) #month to season
-        }else if(trans==1){
-                if(sflag==1) pdq <- c(1,0,1,0,0,0,1) #day
-                if(sflag==2) pdq <- c(1,0,3,0,1,0,7) #week
-                if(sflag==3) pdq <- c(1,0,1,0,1,1,10) #month
-                if(sflag==4) pdq <- c(0,0,0,0,1,0,4) #season
-        }
+        if(sflag==2) pdq <- c(1,1,1,2,1,0,7) #pdq <- c(1,1,0,1,1,0,52) #
         
         for(n1 in (n2-per):(n2-1)){
-                if(sflag<4){
+                if(sflag==4){
                         # pdq <- sarima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
                         stsr <- arima(ts(tmpnewdata[1:n1,sub],frequency = pdq[7]),order=pdq[1:3],seasonal = list(order=pdq[4:6],period=pdq[7]))
                         tmpdata <- tmpnewdata[1:n1,]
                         tmpdata[,sub] <- stsr$residuals
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                        #xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                        xnew <- colnames(tmpdata)[-sub]
                         mlmr <- lm(paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=as.data.frame(tmpdata))
                         res1 <- mlmr$residuals
                 }
                 
-                if(sflag==4){
+                if(sflag < 4){
                         tmpdata <- as.data.frame(tmpnewdata[1:n1,])
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                        #xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                        xnew <- colnames(tmpdata)[-sub]
                         mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                         res <- ts(mlmr$residuals,frequency = fre)
                         pdq <- sarima_paraNew(res,fre=fre)
@@ -189,15 +180,12 @@ MLR_SARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=TRUE
                         res1 <- stsr$residuals
                 }
                 
-                if(sflag <= 4){
-                        #### one step prediction
-                        preds[n1-(n2-per-1)] <- sum(c(1,tmpnewdata[n1+1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))  +  predict(stsr, n.ahead=1)$pred[1]
-                        oneP <- pdq
-                        para <- cbind(para,oneP)
-                        R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],tmpnewdata[1:n1,sub]-res1)
-                        residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
-                }
-        
+                #### one step prediction
+                preds[n1-(n2-per-1)] <- sum(c(1,tmpnewdata[n1+1,xnew]) * tof(as.vector(mlmr$coefficients),na.rm=FALSE,fill=TRUE,f="zero"))  +  predict(stsr, n.ahead=1)$pred[1]
+                oneP <- pdq
+                para <- cbind(para,oneP)
+                R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],tmpnewdata[1:n1,sub]-res1)
+                residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
         }
        
         list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
@@ -222,14 +210,16 @@ MLR_HW_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag,plotP=TRUE,tra
                         tmpdata <- tmpnewdata[1:n1,]
                         
                         tmpdata[,sub] <- tmpdata[,sub] -  c(tmpdata[1:2,sub], stsr$fitted[,"xhat"])
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                        #xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                        xnew <- colnames(tmpdata)[-sub]
                         mlmr <- lm(paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=as.data.frame(tmpdata))
                         res1 <- mlmr$residuals
                 }
                 
                 if(sflag==4){
                         tmpdata <- as.data.frame(tmpnewdata[1:n1,])
-                        xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                        #xnew <-stepCV_hq(tmpdata,sub,cvf=1,dir="inter")
+                        xnew <- colnames(tmpdata)[-sub]
                         mlmr <- lm( paste(colnames(tmpdata)[sub]," ~ ",paste(xnew,sep="",collapse = "+"),sep=""), data=tmpdata )
                         res <- ts(mlmr$residuals,frequency = fre)
                         stsr <- HoltWinters(res,gamma=gamma)
