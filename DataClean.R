@@ -97,8 +97,8 @@ FirstCheck <- function(){
         data5 <- dataNormal(data4)
         
         ## delete redantant factors
-        #data6 <- FeaSelect(data5,Y, k=1)
-        data6 <- data5
+        data6 <- FeaSelect(data5,Y, k=1)
+        #data6 <- data5
         
         data7 <- cbind(Y,data6)
         rownames(data7) <- rownames(data6)
