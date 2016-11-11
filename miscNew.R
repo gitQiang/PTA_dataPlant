@@ -79,4 +79,3 @@ R_squared_hq <- function(y,y1){
         y_ <- mean(y)
         1-(sum((y-y1)^2)/sum((y-y_)^2))
 }
-

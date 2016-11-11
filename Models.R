@@ -46,6 +46,9 @@ Models <- function(model,sflag,tmpnewdata,sub=1,per=per,fre=fre){
 ARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         
         if(sflag==2) pdq <- c(2,1,3,fre) #arima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
+        if(sflag==3) pdq <- c(0,1,2,fre) 
+        if(sflag==4) pdq <- c(1,1,0,fre) 
+        
         #### output 
         R2 <- 1:per ### R^2 values
         preds <- 1:per ### predict values
@@ -71,6 +74,8 @@ ARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
 SARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         
         if(sflag==2) pdq <- c(0,1,0,0,1,1,fre)  #sarima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
+        if(sflag==3) pdq <- c(2,1,1,0,1,1,fre) 
+        if(sflag==4) pdq <- c(0,1,1,0,1,1,fre) 
         
         #### output 
         R2 <- 1:per ### R^2 values
@@ -156,6 +161,9 @@ MLR_SARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         labs0 <- rownames(tmpnewdata)      
         
         if(sflag==2) pdq <- c(0,1,1,fre) 
+        if(sflag==3) pdq <- c(2,1,2,fre) 
+        if(sflag==4) pdq <- c(2,1,1,fre) 
+        
         
         for(n1 in (n2-per):(n2-1)){
                 tmpdata <- as.data.frame(tmpnewdata[1:n1,])
@@ -225,7 +233,6 @@ MLR_HW_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
 
 WMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         
-        library(TTR)
         n2 <- nrow(tmpnewdata)
         n1 <- n2-per
         #### output 
@@ -248,8 +255,6 @@ VAR_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         ntmp <- nrow(tmpnewdata)
         if(ntmp > n.limit) tmpnewdata <- tmpnewdata[(ntmp-n.limit+1):ntmp, ]
         
-        ######
-        library(vars)
         #### output 
         R2 <- 1:per ### R^2 values
         preds <- 1:per ### predict values
@@ -280,6 +285,9 @@ ARIMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         n1 <- min(which(is.na(tmpnewdata[,sub]))) - 1
         
         if(sflag==2) pdq <- c(2,1,3,fre) #arima_paraNew(tmpnewdata[1:n1,sub],fre=fre)
+        if(sflag==3) pdq <- c(0,1,2,fre) 
+        if(sflag==4) pdq <- c(1,1,0,fre) 
+        
         stsr <- arima(ts(tmpnewdata[1:n1,sub],frequency = pdq[4]),order=pdq[1:3])
         preds <- predict(stsr, n.ahead=per)$pred
         R2 <- R_squared_hq(tmpnewdata[1:n1,1],fitted(stsr))
@@ -292,6 +300,9 @@ ARIMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
 SARIMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         
         if(sflag==2) pdq <- c(0,1,0,0,1,1,fre)
+        if(sflag==3) pdq <- c(2,1,1,0,1,1,fre) 
+        if(sflag==4) pdq <- c(0,1,1,0,1,1,fre)
+        
         n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
         stsr <- arima(ts(tmpnewdata[1:n1,sub],frequency = pdq[7]),order=pdq[1:3],seasonal = list(order=pdq[4:6],period=pdq[7]))
         preds <- predict(stsr, n.ahead=per)$pred
@@ -341,6 +352,9 @@ MLR_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
 MLR_SARIMA_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag){
         
         if(sflag==2) pdq <- c(0,1,1,fre) 
+        if(sflag==3) pdq <- c(2,1,2,fre) 
+        if(sflag==4) pdq <- c(2,1,1,fre) 
+        
         #per <- sum(is.na(tmpnewdata[,sub]))
         #### output 
         R2 <- 1:per ### R^2 values
@@ -410,7 +424,6 @@ MLR_HW_P <- function(tmpnewdata,sub=1,per=1,fre=fre,sflag=sflag){
 
 WMA_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         
-        library(TTR)
         n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
 
         ts <- tmpnewdata[1:n1,sub]
@@ -437,8 +450,6 @@ VAR_P <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         ntmp <- nrow(tmpnewdata)
         if(ntmp > (n.limit+fre)) tmpnewdata <- tmpnewdata[(ntmp-n.limit-fre+1):ntmp, ]
         
-        ####
-        library(vars)
         n1 <- min(which(is.na(tmpnewdata[,1]))) - 1
         
         n2 <- n1

@@ -1,7 +1,5 @@
 getUpdateData_v2 <- function(){
         ### 读出wind, choice  data 和 天气数据
-        library(RMySQL)
-        library(DBI)
         con <- dbConnect(dbDriver("MySQL"),dbname="mathes_version3",user='etlmathes',password="yAUJ4c",host="172.16.2.244")
         
         tabs <- c("hengyi_pta_choicedata","hengyi_pta_choicedatav1","hengyi_pta_choicedatav2","hengyi_pta_winddatav2_1","hengyi_pta_winddatav2_2","hengyi_pta_winddatav2_3","hengyi_pta_winddatav2_4")
@@ -63,22 +61,26 @@ getUpdateData_v2 <- function(){
         tmpcols <- gsub("\\.","",tmpcols)
         colnames(Newdata) <- tmpcols
         
-        sub <- min(which(grepl("2009",Newdata[,1])))
+        sub <- min(which(grepl("2002",Newdata[,1])))
         Newdata <- Newdata[sub:nrow(Newdata), ]
         ###Newdata <- Newdata[,!duplicated(colnames(Newdata))]
         
         Newdata
 }
 
-FirstCheck <- function(){
+FirstCheck <- function(data0,d="week"){
         
-        #source("DataClean.R")
-        library(lubridate)
-        Newdata <- getUpdateData_v2()
-        Newdata[Newdata==""] <- NA
-        data0 <- delRep(Newdata)
-   
-        data1 <- trans2Week(data0)
+        if(d=="week"){k1=1;k2=1;}
+        if(d=="month"){k1=2;k2=2;}
+        if(d=="season"){k1=3;k2=2;}
+        if(d=="day") stop("Daily prediction is not supported now.")
+        
+        if(d %in% c("week","month")){
+                sub <- min(which(grepl("2009",data0[,1])))
+                data0 <- data0[sub:nrow(data0), ]
+        }
+        
+        data1 <- trans2Week(data0,k=k1)
         #data2 <- delRep(data1)
         ysub <- which(colnames(data1)=="市场价PTA对苯二甲酸")
         Y <- data1[,ysub]
@@ -97,7 +99,7 @@ FirstCheck <- function(){
         data5 <- dataNormal(data4)
         
         ## delete redantant factors
-        data6 <- FeaSelect(data5,Y, k=1)
+        data6 <- FeaSelect(data5,Y, k=k2)
         #data6 <- data5
         
         data7 <- cbind(Y,data6)
@@ -191,7 +193,7 @@ outlierAna <- function(data2){
 }
 
 data_filling <- function(data3){
-        library(zoo)
+        
         n <- nrow(data3)
         data4 <- sapply(1:ncol(data3), function(i){
                 if(anyNA(data3[,i])){
@@ -240,8 +242,6 @@ FeaSelect <- function(data5,Y,k=1){
                 colnames(a1) <- c(paste("X",1:(ncol(a1)-1),sep=""),"Class")
                 rownames(a1) <- 1:nrow(a1)
                 
-                
-                library(FSelector)
                 w0 <- unlist(information.gain(Class ~., a1))
                 # w1 <- unlist(chi.squared(Class~., a1))
                 # subset <- cfs(Class ~ ., a1)
@@ -250,8 +250,22 @@ FeaSelect <- function(data5,Y,k=1){
                 data6 <- data5[, subs]
         }
         
-        ## caret based not used by now
+        ### based on forward CV
         if(k==2){
+                n.row <- nrow(data5)
+                x <- data5[-n.row, ]
+                y <- Y[-1]
+                a1 <- data.frame(y,x)
+                colnames(a1) <- c("Class",paste("X",1:(ncol(a1)-1),sep=""))
+                rownames(a1) <- 1:nrow(a1)
+                
+                
+                Xnew <- stepCV_hq(a1)
+                data6 <- data5[, match(Xnew,colnames(a1))-1]
+        }
+        
+        ## caret based not used by now
+        if(k==3){
                 
                 library(caret)   
                 #fitControl <- trainControl(method = "boot",  verboseIter = FALSE) 
@@ -263,12 +277,8 @@ FeaSelect <- function(data5,Y,k=1){
         
         }
         
-        #  for classifiers and regression training
-        # library(Boruta)   # it use random forest for classifiers
-        # limitations: http://www.cybaea.net/journal/2010/11/15/Feature-selection-All-relevant-selection-with-the-Boruta-package/
-                
         ## based on PCA
-        if(k==3){
+        if(k==4){
                 pr <- prcomp(data5, scale = FALSE)
                 vars <- apply(pr$x, 2, var)
                 props <- vars / sum(vars)
@@ -277,7 +287,7 @@ FeaSelect <- function(data5,Y,k=1){
         }
         
         ## based on hclust
-        if(k==4){
+        if(k==5){
                 tmp <- data5
                 colnames(tmp) <- 1:ncol(data5)
                 
@@ -302,4 +312,29 @@ FeaSelect <- function(data5,Y,k=1){
         
         
         data6
+}
+
+stepCV_hq <- function(data,cvf=1){
+        ### which measure is used: 1:CV;2:AIC;3:AICc;4:BIC;5:AdjR2 
+        
+        Y <- colnames(data)[1]
+        X <- colnames(data)[-1]
+        CVs <- sapply(X, function(i) CV(lm( paste(Y,"~",i,sep=""),  data=as.data.frame(data) ))[cvf])
+        if(cvf==5){CVs = 1-CVs;}
+        
+        tmp <- sort(CVs, index.return=TRUE)
+        X <- X[tmp$ix]
+        Xnew <- X[1];
+        fit0 <-  lm(paste(Y," ~ ",X[1],sep=""), data=as.data.frame(data))
+        CV0 <- ifelse(cvf<=4,CV(fit0)[cvf],1 - CV(fit0)[cvf])
+        for(i in 2:length(X)){
+                tmpfit <-  lm(paste(Y," ~ ",paste(c(Xnew,X[i]),sep="",collapse=" + "),sep=""), data=as.data.frame(data))
+                tmpCV <- ifelse(cvf<=4,CV(tmpfit)[cvf],1-CV(tmpfit)[cvf])
+                if(is.na(tmpCV)) tmpCV <- CV0+1000
+                if(tmpCV < CV0){fit0 <- tmpfit; CV0 <- tmpCV; Xnew <- c(Xnew,X[i]);}
+                if(length(Xnew) >= (nrow(data)/3)) break;
+                if(sum(abs(fitted(tmpfit)-data[,Y])) < 0.0001*mean(data[,Y]) ) break;
+        }
+        
+        Xnew
 }
