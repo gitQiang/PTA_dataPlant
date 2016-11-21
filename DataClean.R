@@ -159,24 +159,8 @@ outlierAna <- function(data2){
         tmp <- data2[ ,colwea]
         tmp[tmp < 0] <- NA
         data2[ ,colwea] <- tmp
-        data2[data2[,"S5409599"] > 300, "S5409599"] <- 300
-        data2[data2[,"S5410166"] > 300, "S5410166"] <- 300
-        
-        # n <- ncol(data2)
-        # tmp <- 1:n
-        # for(i in 1:n){
-        #         a1 <- data2[!is.na(data2[,i]),i]
-        #         #tmp[i] <- sd(a1)/mean(abs(a1)) 
-        #         tmp[i] <- max(abs(a1))/median(abs(a1))
-        # }
-        # plot(tmp)
-        # 
-        # none <- 662
-        # colnames(data2)[none]
-        # min(data2[!is.na(data2[,none]),none])
-        # max(data2[!is.na(data2[,none]),none])
-        # median(data2[!is.na(data2[,none]),none])
-        
+        data2 <- outlierCut(data2)
+     
         tmp <- 1:ncol(data2)
         for(i in 1:ncol(data2)) tmp[i] <- sum(is.na(data2[,i]))
         # naRate <- 1:10
@@ -190,6 +174,36 @@ outlierAna <- function(data2){
         data3 <- data2[, tmp/nrow(data2) <= 0.7]
         
         data3
+}
+
+outlierCut <- function(data2, ncut=100){
+        
+        n <- ncol(data2)
+        tmp <- rep(1,n)
+        for(i in 1:n){
+                a1 <- data2[!is.na(data2[,i]),i]
+                if(length(a1) > 0){
+                        tmp[i] <- max(abs(a1))/median(abs(a1))
+                        if(median(abs(a1))==0) tmp[i] <- max(abs(a1))/mean(abs(a1))
+                }
+        }
+        
+        outsub <- which(tmp > ncut)
+        for(i in outsub){
+                a1 <- data2[!is.na(data2[,i]),i]
+                
+                tmp1 <- max(a1)/median(abs(a1))
+                tmp2 <- abs(min(a1))/median(abs(a1))
+                if(median(abs(a1))==0) {
+                        tmp1 <- max(a1)/mean(abs(a1))
+                        tmp2 <- abs(min(a1))/mean(abs(a1))
+                }
+                
+                if(tmp1 > ncut) data2[data2[,i] > quantile(a1, 0.95), i] <- quantile(a1, 0.95) * 1.5
+                if(tmp2 > ncut) data2[data2[,i] < quantile(a1, 0.05), i] <- quantile(a1, 0.05) * 0.5
+        }
+        
+        data2
 }
 
 data_filling <- function(data3){
