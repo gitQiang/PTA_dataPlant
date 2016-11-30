@@ -1,70 +1,53 @@
-#PTA_dataPlant
+# PTA price prediction
 
-Transform to dataPlant for different models to show.
+Here, we combined different information and tried to predict PTA price in different dimensions.
 
-# File lists
+# Data update in daily and write into Mysql database.
+
+1) Update weather data
+
+ChoiceWeatherDataUpdate.bat
+
+2) Update Choice data
+
+ChoiceDataUpdate.bat
+
+3) Update Wind data 
+
+DataUpdate.bat and DataUpdatePTA.bat in "Wind".
+
+# Main functions
+
+train_predict.R: main interface function to run 
+
+DataClean.R: data preparing functions
+
+# Other useful files:
 
 getWeather.py: get today weather data
 
 getWeatherData.R: write today weather data into database table (not upload with password)
 
-OldWeather2Database.R: write history weather data into database table (not upload with password)
-
 getWindData.R: write today wind data into database table (not upload with password)
-
-OldWind2Database.R: write history Wind data into database table (not upload with password)
 
 getChoiceData.R: write today choice data into database table (not upload with password)
 
-OldChoice2Database.R: write history choice data into database table (not upload with password)
+miscNew.R: misc functions for PTA models of new branch (fill1)
 
-getUpdateALL.R: read all related data into R space (not upload with password)
-
-misc.R: misc functions for PTA models
-
-Models.R: all models
-
-PTA_prediction.R: main interface function to run (not upload with password)
-
-ChoiceWeatherDataUpdate.bat: windows task file to update data everyday
+Models.R: all models for training and predicting
 
 log.txt: python log file
 
 README: this file
 
+other files will beremoved from the final online version.
+
+# Contact information
+
+Qiang Huang (email: huangqiang@3golden.com.cn)
+
+Copyright ©2016 All rights reserved.
 
 
-# Old Version
-
-# Step one:
-
-DataUpdate.bat: update daily data and write the new data table into Mysql database.
-
-In details:
-
-1) Update Wind data 
-
-Rscript --vanilla D:/code/PTA_dataPlant/getUpdateData.R
-
-2) Update weather data
-
-python D:/code/PTA_dataPlant/getWeather.py
-
-3) Update Choice data
-
-python D:/code/PTA_dataPlant/ChoiceCode/bat/main.py
-
-4) Update clear
-
-Rscript D:/code/PTA_dataPlant/DayUpdateClear.R
-
-5) add to old data and write to Mysql database
-
-Rscript D:/code/PTA_dataPlant/data_updating.R
-
-
-# Step two: 
-
-PTA_prediction.R: load new data and run all the related mdoels.
 
 
