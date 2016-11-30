@@ -32,7 +32,7 @@ data0 <- delRep(Newdata)
 
 ## given parameters about data dimension
 ## i=2: week prediction;i=3: month prediction; i=4: season prediction
-i=3
+i=4
 dims <- c("day","week","month","season")
 fres <- c(255,52,12,4) ## 53 weeks (one without data)
 pers <- c(50,30,20,10)

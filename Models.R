@@ -67,7 +67,9 @@ ARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
                 #print(n1)
         }
         
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+        PR2 <- R_squared_hq(tmpnewdata[(n2-per+1):n2, sub], preds)
+                
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2],PR2=PR2)
 }
 
 
@@ -95,7 +97,9 @@ SARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
                 #print(n1)
         }
         
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+        PR2 <- R_squared_hq(tmpnewdata[(n2-per+1):n2, sub], preds)
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2],PR2=PR2)
 }
 
 
@@ -120,7 +124,9 @@ HW_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
                 #print(n1)
         }
         
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+        PR2 <- R_squared_hq(tmpnewdata[(n2-per+1):n2, sub], preds)
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2],PR2=PR2)
 }
 
 
@@ -145,7 +151,9 @@ MLR_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
                 residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
         }
 
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+        PR2 <- R_squared_hq(tmpnewdata[(n2-per+1):n2, sub], preds)
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2],PR2=PR2)
 }
 
 
@@ -180,8 +188,10 @@ MLR_SARIMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
                 R2[n1-(n2-per-1)] <- R_squared_hq(tmpnewdata[1:n1,sub],tmpnewdata[1:n1,sub]-res1) #??
                 residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
         }
+        
+        PR2 <- R_squared_hq(tmpnewdata[(n2-per+1):n2, sub], preds)
        
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2],PR2=PR2)
         
 }
 
@@ -227,7 +237,9 @@ MLR_HW_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
                 residuals[n1-(n2-per-1)] <- tmpnewdata[n1+1,sub] - preds[n1-(n2-per-1)]
         }
         
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+        PR2 <- R_squared_hq(tmpnewdata[(n2-per+1):n2, sub], preds)
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2],PR2=PR2)
 }
 
 
@@ -245,7 +257,9 @@ WMA_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
         R2 <- sapply( (n1+1):n2, function(kk) R_squared_hq(tmpnewdata[3:kk,sub],wts[2:(kk-1)]) )
         para <- rep(2,per)
         
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+        PR2 <- R_squared_hq(tmpnewdata[(n2-per+1):n2, sub], preds)
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2],PR2=PR2)
 }
 
 
@@ -274,7 +288,9 @@ VAR_T <- function(tmpnewdata,sub=1,per=per,fre=fre,sflag=sflag){
                 residuals[n1-L+per+1] <- tmpnewdata[n1+1+n2-L,sub] - preds[n1-L+per+1]
         }
         
-        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2])
+        PR2 <- R_squared_hq(tmpnewdata[(n2-per+1):n2, sub], preds)
+        
+        list(obs=tmpnewdata[(n2-per+1):n2,sub],R2=R2,preds=preds,residuals=residuals,para=para,labs=rownames(tmpnewdata)[(n2-per+1):n2],PR2=PR2)
 }
 
 

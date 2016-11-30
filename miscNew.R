@@ -10,7 +10,7 @@ plot_testing <- function(obs,preds,labs,main=""){
         pos <- 1:length(obs)-length(obs)/100
         if(length(pos) > 20){pos <- pos[seq(1,length(pos),length.out=20)];labs <- labs[seq(1,length(labs),length.out=20)];}
         text(pos, par("usr")[3]-0.11*(ymax-ymin), labels = labs, srt = 90, pos = 1, xpd = TRUE)
-        legend(ord,legend=c("Observed","Prediction"),col=1:2,lwd=2)         
+        legend(ord,legend=c("真实值","预测值"),col=1:2,lwd=2)         
 }
 
 pseudoPredict <- function(tmpdata,per,targetIndex=1,flag=1){
@@ -28,7 +28,9 @@ pseudoPredict <- function(tmpdata,per,targetIndex=1,flag=1){
                 residuals[n1-(n2-per-1)] <- tmpdata[n1+1,targetIndex] - preds[n1-(n2-per-1)]
         }
         
-        list(obs=tmpdata[(n2-per+1):n2,targetIndex],R2=R2,preds=preds,residuals=residuals,para=-1,labs=rownames(tmpdata)[(n2-per+1):n2])
+        PR2 <- R_squared_hq(tmpdata[(n2-per+1):n2, targetIndex], preds)
+        
+        list(obs=tmpdata[(n2-per+1):n2,targetIndex],R2=R2,preds=preds,residuals=residuals,para=-1,labs=rownames(tmpdata)[(n2-per+1):n2],PR2=PR2)
 }
 
 precision_pred <- function(tmp,p=-1,ytrain){
@@ -44,9 +46,10 @@ precision_pred <- function(tmp,p=-1,ytrain){
         s2 <- sum(sub2)/(n-1) ### trend correct
         s3 <- sum(sub1 & c(TRUE,sub2) )/n ### both
         s4 <- as.vector(summary(abs(tmp$residuals))) ### residual summary
-        s5 <- as.vector(summary(tmp$R2)) ### R2 summary
+        s5 <- as.vector(summary(tmp$R2)) ### R2 summary fitted
+        s6 <- tmp$PR2 ### R2 predict
         
-        list(s1=s1,s2=s2,s3=s3,s4=s4,s5=s5)
+        list(s1=s1,s2=s2,s3=s3,s4=s4,s5=s5,s6=s6)
 }
 
 good_p <- function(ytrain, n.obs=100){
